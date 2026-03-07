@@ -12,6 +12,7 @@ import { deviceRoutes } from './routes/device.routes';
 import { messageRoutes } from './routes/message.routes';
 import { templateRoutes } from './routes/template.routes';
 import { contactRoutes } from './routes/contact.routes';
+import { autoResponderRoutes } from './routes/autoResponder.routes';
 import { wsServer } from './websocket/wsServer';
 import { sessionManager } from './baileys/sessionManager';
 import { prisma } from './config/prisma';
@@ -60,6 +61,7 @@ async function buildServer() {
     fastify.register(messageRoutes, { prefix: '/messages' });
     fastify.register(templateRoutes, { prefix: '/templates' });
     fastify.register(contactRoutes, { prefix: '/contacts' });
+    fastify.register(autoResponderRoutes, { prefix: '/auto-responder' });
 
     // ── Error handler ─────────────────────────────────────────
     fastify.setErrorHandler(errorHandler);

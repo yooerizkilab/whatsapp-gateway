@@ -12,6 +12,8 @@ import * as path from 'path';
 import { env } from '../config/env';
 import { wsServer } from '../websocket/wsServer';
 import { prisma } from '../config/prisma';
+import { autoResponderRepository } from '../repositories/autoResponderRepository';
+import { callAI } from '../services/aiService';
 
 export interface DeviceSession {
     socket: WASocket;
@@ -120,20 +122,34 @@ class SessionManager {
             }
         });
 
-        socket.ev.on('messages.upsert', async ({ messages }) => {
+        socket.ev.on('messages.upsert', async ({ messages, type }) => {
+            if (type !== 'notify') return; // Hanya proses pesan baru
+
             for (const msg of messages) {
                 if (!msg.key.fromMe && msg.message) {
-                    // Log incoming message (extend as needed)
                     const from = msg.key.remoteJid || '';
+
+                    // Ekstrak teks dari berbagai kemungkinan payload WhatsApp
                     const text =
                         msg.message.conversation ||
                         msg.message.extendedTextMessage?.text ||
+                        msg.message.imageMessage?.caption ||
+                        msg.message.videoMessage?.caption ||
                         '';
+
+                    console.log(`[WhatsApp] Incoming message to ${deviceId} from ${from}: "${text}"`);
+
+                    // Broadcast incoming message to frontend
                     wsServer.sendToDevice(deviceId, 'incoming_message', {
                         deviceId,
                         from,
                         text,
                     });
+
+                    // Auto-responder
+                    if (text) {
+                        await this.handleAutoRespond(deviceId, from, text);
+                    }
                 }
             }
         });
@@ -209,6 +225,65 @@ class SessionManager {
             } catch (err) {
                 console.error(`Failed to restore session for device ${device.id}:`, err);
             }
+        }
+    }
+
+    /**
+     * Handle auto-respond logic for incoming messages.
+     * 1. Match keyword rules (sorted by order).
+     * 2. If no match and AI is configured → call AI and reply.
+     */
+    async handleAutoRespond(deviceId: string, from: string, text: string): Promise<void> {
+        try {
+            const autoResponder = await autoResponderRepository.findActiveByDeviceId(deviceId);
+            if (!autoResponder) return;
+
+            const normalizedText = text.trim().toLowerCase();
+            let replied = false;
+
+            // ── 1. Keyword rules ───────────────────────────────────
+            for (const rule of autoResponder.rules) {
+                if (!rule.isActive) continue;
+
+                let keywords = rule.keywords.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean);
+                const matchType = rule.matchType.toUpperCase();
+
+                // Spesial untuk REGEX, kita tidak pisahkan berdasarkan koma agar regex utuh
+                if (matchType === 'REGEX') {
+                    keywords = [rule.keywords.trim()];
+                }
+
+                const matched = keywords.some((kw: string) => {
+                    switch (matchType) {
+                        case 'EXACT': return normalizedText === kw;
+                        case 'STARTSWITH': return normalizedText.startsWith(kw);
+                        case 'REGEX': try { return new RegExp(kw, 'i').test(text); } catch { return false; }
+                        case 'CONTAINS':
+                        default: return normalizedText.includes(kw);
+                    }
+                });
+
+                if (matched) {
+                    await this.sendTextMessage(deviceId, from, rule.response);
+                    console.log(`[AutoResponder] Keyword match (${matchType}): "${text}" → rule ${rule.id}`);
+                    replied = true;
+                    break;
+                }
+            }
+
+            // ── 2. AI fallback ─────────────────────────────────────
+            if (!replied && autoResponder.aiProvider) {
+                const aiReply = await callAI(
+                    autoResponder.aiProvider,
+                    autoResponder.aiModel || '',
+                    autoResponder.systemPrompt || 'You are a helpful WhatsApp assistant. Reply concisely.',
+                    text
+                );
+                await this.sendTextMessage(deviceId, from, aiReply);
+                console.log(`[AutoResponder] AI (${autoResponder.aiProvider}) replied to: "${text}"`);
+            }
+        } catch (err: any) {
+            console.error(`[AutoResponder] Error handling auto-respond for device ${deviceId}:`, err.message);
         }
     }
 }

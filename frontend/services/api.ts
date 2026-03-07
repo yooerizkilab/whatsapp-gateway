@@ -91,3 +91,33 @@ export const contactAPI = {
     listGroups: () => api.get('/contacts/groups'),
     createGroup: (name: string) => api.post('/contacts/groups', { name }),
 };
+
+// ── Auto Responder ─────────────────────────────────────────
+export const autoResponderAPI = {
+    list: () => api.get('/auto-responder'),
+    getById: (id: string) => api.get(`/auto-responder/${id}`),
+    create: (data: {
+        deviceId: string;
+        name: string;
+        isActive?: boolean;
+        aiProvider?: string | null;
+        aiModel?: string | null;
+        systemPrompt?: string | null;
+    }) => api.post('/auto-responder', data),
+    update: (id: string, data: Partial<{
+        name: string;
+        isActive: boolean;
+        aiProvider: string | null;
+        aiModel: string | null;
+        systemPrompt: string | null;
+    }>) => api.put(`/auto-responder/${id}`, data),
+    delete: (id: string) => api.delete(`/auto-responder/${id}`),
+
+    // Rules
+    createRule: (id: string, data: { keywords: string; matchType?: string; response: string; order?: number }) =>
+        api.post(`/auto-responder/${id}/rules`, data),
+    updateRule: (id: string, ruleId: string, data: object) =>
+        api.put(`/auto-responder/${id}/rules/${ruleId}`, data),
+    deleteRule: (id: string, ruleId: string) =>
+        api.delete(`/auto-responder/${id}/rules/${ruleId}`),
+};

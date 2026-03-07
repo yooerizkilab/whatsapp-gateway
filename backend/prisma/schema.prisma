@@ -22,11 +22,12 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  devices       Device[]
-  contacts      Contact[]
-  contactGroups ContactGroup[]
-  templates     Template[]
-  blastJobs     BlastJob[]
+  devices        Device[]
+  contacts       Contact[]
+  contactGroups  ContactGroup[]
+  templates      Template[]
+  blastJobs      BlastJob[]
+  autoResponders AutoResponder[]
 
   @@index([email])
   @@map("users")
@@ -50,9 +51,10 @@ model Device {
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages  Message[]
-  blastJobs BlastJob[]
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages      Message[]
+  blastJobs     BlastJob[]
+  autoResponder AutoResponder?
 
   @@index([userId])
   @@index([status])
@@ -244,4 +246,45 @@ enum RecipientStatus {
   PENDING
   SENT
   FAILED
+}
+
+// ─────────────────────────────────────────────────────────
+// AUTO RESPONDER
+// ─────────────────────────────────────────────────────────
+model AutoResponder {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  deviceId     String   @unique @map("device_id")
+  name         String
+  isActive     Boolean  @default(true) @map("is_active")
+  aiProvider   String?  @map("ai_provider") // openai | anthropic | gemini
+  aiModel      String?  @map("ai_model")
+  systemPrompt String?  @db.Text @map("system_prompt")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device Device              @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  rules  AutoResponderRule[]
+
+  @@index([userId])
+  @@index([deviceId])
+  @@map("auto_responders")
+}
+
+model AutoResponderRule {
+  id              String   @id @default(uuid())
+  autoResponderId String   @map("auto_responder_id")
+  keywords        String   @db.Text // comma-separated list
+  matchType       String   @default("CONTAINS") @map("match_type") // EXACT | CONTAINS | STARTSWITH | REGEX
+  response        String   @db.Text
+  order           Int      @default(0)
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  autoResponder AutoResponder @relation(fields: [autoResponderId], references: [id], onDelete: Cascade)
+
+  @@index([autoResponderId])
+  @@map("auto_responder_rules")
 }
