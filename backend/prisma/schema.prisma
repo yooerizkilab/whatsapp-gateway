@@ -28,6 +28,7 @@ model User {
   templates      Template[]
   blastJobs      BlastJob[]
   autoResponders AutoResponder[]
+  webhooks       Webhook[]
 
   @@index([email])
   @@map("users")
@@ -55,6 +56,7 @@ model Device {
   messages      Message[]
   blastJobs     BlastJob[]
   autoResponder AutoResponder?
+  webhook       Webhook?
 
   @@index([userId])
   @@index([status])
@@ -287,4 +289,24 @@ model AutoResponderRule {
 
   @@index([autoResponderId])
   @@map("auto_responder_rules")
+}
+
+// ─────────────────────────────────────────────────────────
+// WEBHOOKS
+// ─────────────────────────────────────────────────────────
+model Webhook {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  deviceId  String   @unique @map("device_id")
+  url       String   @db.Text
+  secret    String?  
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("webhooks")
 }

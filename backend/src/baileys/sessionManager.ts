@@ -14,6 +14,8 @@ import { wsServer } from '../websocket/wsServer';
 import { prisma } from '../config/prisma';
 import { autoResponderRepository } from '../repositories/autoResponderRepository';
 import { callAI } from '../services/aiService';
+import { webhookRepository } from '../repositories/webhookRepository';
+import { webhookService } from '../services/webhookService';
 
 export interface DeviceSession {
     socket: WASocket;
@@ -145,6 +147,21 @@ class SessionManager {
                         from,
                         text,
                     });
+
+                    // Tangani Webhook
+                    try {
+                        const webhook = await webhookRepository.findActiveByDeviceId(deviceId);
+                        if (webhook) {
+                            webhookService.triggerWebhook(webhook.url, webhook.secret, {
+                                event: 'messages.upsert',
+                                device: deviceId,
+                                message: { from, text },
+                                timestamp: Date.now(),
+                            });
+                        }
+                    } catch (err: any) {
+                        console.error(`[Webhook] Error finding webhook for device ${deviceId}:`, err.message);
+                    }
 
                     // Auto-responder
                     if (text) {

@@ -2,9 +2,9 @@
 
 Project ini dibangun dengan arsitektur skalabel sehingga sangat mudah untuk dikembangkan menjadi SaaS tingkat lanjut. Berikut adalah beberapa fitur potensial untuk pengembangan berikutnya:
 
-1. **🤖 Auto-Responder / Chatbot Builder**
+1. ~~**🤖 Auto-Responder / Chatbot Builder**~~ (✅ Selesai)
    Membuat fitur _keyword detection_ atau visual flow builder yang membalas pesan secara otomatis tanpa campur tangan admin.
-2. **🔗 Webhook Management**
+2. ~~**🔗 Webhook Management**~~ (✅ Selesai)
    Kemampuan meneruskan (_forward_) pesan yang masuk (Incoming Messages) ke server/aplikasi milik pengguna pihak ketiga secara _Real-time_.
 3. **💳 SaaS Billing & Tiering Quota**
    Integrasi payment gateway (Midtrans/Stripe) beserta kuota pesan bulanan per user untuk memonetisasi platform secara B2B.

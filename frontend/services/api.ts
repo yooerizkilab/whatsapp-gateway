@@ -121,3 +121,14 @@ export const autoResponderAPI = {
     deleteRule: (id: string, ruleId: string) =>
         api.delete(`/auto-responder/${id}/rules/${ruleId}`),
 };
+
+// ── Webhooks ───────────────────────────────────────────────
+export const webhookAPI = {
+    list: () => api.get('/webhooks'),
+    getById: (id: string) => api.get(`/webhooks/${id}`),
+    create: (data: { deviceId: string; url: string; secret?: string }) =>
+        api.post('/webhooks', data),
+    update: (id: string, data: Partial<{ url: string; secret: string; isActive: boolean }>) =>
+        api.put(`/webhooks/${id}`, data),
+    delete: (id: string) => api.delete(`/webhooks/${id}`),
+};
