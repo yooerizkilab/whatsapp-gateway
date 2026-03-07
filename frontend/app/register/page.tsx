@@ -7,22 +7,24 @@ import { authAPI } from '@/services/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('admin@example.com');
-  const [password, setPassword] = useState('admin123');
+export default function RegisterPage() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const setAuth = useAuthStore((s) => s.setAuth);
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await authAPI.login(email, password);
+      const res = await authAPI.register({ name, email, password });
       setAuth(res.data.data.user, res.data.data.token);
+      toast.success('Registration successful! Welcome to WA Gateway.');
       router.push('/dashboard');
-    } catch {
-      toast.error('Invalid credentials');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -37,10 +39,21 @@ export default function LoginPage() {
             W
           </div>
           <h1 className="text-2xl font-bold text-white">WA Gateway</h1>
-          <p className="text-gray-400 mt-1">Sign in to your account</p>
+          <p className="text-gray-400 mt-1">Create your account to get started</p>
         </div>
 
-        <form onSubmit={handleLogin} className="card space-y-4">
+        <form onSubmit={handleRegister} className="card space-y-4">
+          <div>
+            <label className="label">Full Name</label>
+            <input
+              type="text"
+              className="input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              placeholder="John Doe"
+            />
+          </div>
           <div>
             <label className="label">Email</label>
             <input
@@ -49,7 +62,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="admin@example.com"
+              placeholder="john@example.com"
             />
           </div>
           <div>
@@ -64,14 +77,14 @@ export default function LoginPage() {
             />
           </div>
           <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign In'}
+            {loading ? 'Creating account…' : 'Create Account'}
           </button>
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          Don't have an account?{' '}
-          <Link href="/register" className="text-brand-500 hover:underline">
-            Register for free
+          Already have an account?{' '}
+          <Link href="/login" className="text-brand-500 hover:underline">
+            Sign In
           </Link>
         </p>
       </div>

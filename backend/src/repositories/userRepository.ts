@@ -10,7 +10,14 @@ export const userRepository = {
         return prisma.user.findUnique({ where: { id } });
     },
 
-    async create(data: { email: string; password: string; name: string; role?: 'ADMIN' | 'USER' }) {
+    async create(data: {
+        email: string;
+        password: string;
+        name: string;
+        role?: 'ADMIN' | 'USER';
+        subscriptionPlanId?: string;
+        subscriptionStatus?: 'ACTIVE' | 'EXPIRED' | 'CANCELED';
+    }) {
         const hashed = await hashPassword(data.password);
         return prisma.user.create({
             data: { ...data, password: hashed },

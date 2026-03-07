@@ -30,6 +30,41 @@ export const authController = {
         });
     },
 
+    async register(request: FastifyRequest, reply: FastifyReply) {
+        const { email, password, name } = request.body as {
+            email: string;
+            password: string;
+            name: string;
+        };
+
+        const existing = await userRepository.findByEmail(email);
+        if (existing) {
+            return reply.status(400).send({ success: false, message: 'Email already registered' });
+        }
+
+        const user = await userRepository.create({
+            email,
+            password,
+            name,
+            role: 'USER',
+            subscriptionPlanId: 'free',
+            subscriptionStatus: 'ACTIVE',
+        });
+
+        const token = await reply.jwtSign(
+            { id: user.id, email: user.email, role: user.role },
+            { expiresIn: '7d' }
+        );
+
+        return reply.status(201).send({
+            success: true,
+            data: {
+                token,
+                user: { id: user.id, email: user.email, name: user.name, role: user.role },
+            },
+        });
+    },
+
     async me(request: FastifyRequest, reply: FastifyReply) {
         const { id } = request.user as { id: string };
         const user = await userRepository.findById(id);
