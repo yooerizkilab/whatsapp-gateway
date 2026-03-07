@@ -49,11 +49,14 @@ export const blastController = {
 
         await blastRepository.createRecipients(recipients);
 
-        // Limit Quota Increment
-        await prisma.user.update({
-            where: { id: userId },
-            data: { messagesSentThisMonth: { increment: recipients.length } }
-        });
+        // Limit Quota Increment (Skip if ADMIN)
+        const user = request.user as any;
+        if (user.role !== 'ADMIN') {
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { messagesSentThisMonth: { increment: recipients.length } }
+            });
+        }
 
         return reply.status(201).send({
             success: true,

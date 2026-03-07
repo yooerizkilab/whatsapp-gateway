@@ -27,12 +27,14 @@ export const messageController = {
             await messageRepository.updateStatus(message.id, 'SENT', new Date());
             await messageRepository.addLog(message.id, 'sent');
 
-            // Increment kuota message user
-            const userId = (request.user as any).id;
-            await prisma.user.update({
-                where: { id: userId },
-                data: { messagesSentThisMonth: { increment: 1 } }
-            });
+            // Increment kuota message user (Skip if ADMIN)
+            const user = request.user as any;
+            if (user.role !== 'ADMIN') {
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: { messagesSentThisMonth: { increment: 1 } }
+                });
+            }
 
             return reply.send({ success: true, data: { ...message, status: 'SENT' } });
         } catch (err: any) {

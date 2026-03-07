@@ -22,6 +22,9 @@ export const quotaMiddleware = {
 
             if (!user) return reply.code(401).send({ message: 'Unauthorized' });
 
+            // Admin bypass
+            if (user.role === 'ADMIN') return;
+
             const currentDeviceCount = await prisma.device.count({
                 where: { userId }
             });
@@ -52,6 +55,9 @@ export const quotaMiddleware = {
             });
 
             if (!user) return reply.code(401).send({ message: 'Unauthorized' });
+
+            // Admin bypass
+            if (user.role === 'ADMIN') return;
 
             const maxMessages = user.subscriptionStatus === 'ACTIVE' && user.subscriptionPlan
                 ? user.subscriptionPlan.maxMessagesPerMonth
