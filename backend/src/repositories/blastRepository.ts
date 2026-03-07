@@ -57,6 +57,13 @@ export const blastRepository = {
         });
     },
 
+    async findRecipientById(id: string) {
+        return prisma.blastRecipient.findUnique({
+            where: { id },
+            include: { blastJob: { include: { device: true } } },
+        });
+    },
+
     async countRecipients(blastJobId: string) {
         const [total, sent, failed, pending] = await Promise.all([
             prisma.blastRecipient.count({ where: { blastJobId } }),

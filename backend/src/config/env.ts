@@ -14,4 +14,7 @@ export const env = {
     MIDTRANS_SERVER_KEY: process.env.MIDTRANS_SERVER_KEY || '',
     MIDTRANS_CLIENT_KEY: process.env.MIDTRANS_CLIENT_KEY || '',
     MIDTRANS_IS_PRODUCTION: process.env.MIDTRANS_IS_PRODUCTION === 'true',
+    REDIS_HOST: process.env.REDIS_HOST || '127.0.0.1',
+    REDIS_PORT: parseInt(process.env.REDIS_PORT || '6379', 10),
+    REDIS_PASSWORD: process.env.REDIS_PASSWORD || undefined,
 };

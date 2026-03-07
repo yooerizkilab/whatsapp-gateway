@@ -1,85 +1,110 @@
 import 'dotenv/config';
+import { Worker, Job, ConnectionOptions } from 'bullmq';
+import { redisConnection } from '../config/redis';
+import { env } from '../config/env';
+import { addRecipientJob } from '../queues/blastQueue';
+import { prisma } from '../config/prisma';
 import { blastRepository } from '../repositories/blastRepository';
 import { sessionManager } from '../baileys/sessionManager';
 import { wsServer } from '../websocket/wsServer';
-import { env } from '../config/env';
 
-const POLL_INTERVAL = env.WORKER_INTERVAL_MS;
-const MESSAGE_DELAY = env.MESSAGE_DELAY_MS;
+const worker = new Worker(
+    'blast-queue',
+    async (job: Job) => {
+        const { recipientId } = job.data as { recipientId: string };
+        console.log(`[Worker] Processing recipient: ${recipientId}`);
 
-function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function processNextRecipient(): Promise<void> {
-    // First activate any due scheduled jobs
-    const dueJobs = await blastRepository.findDueScheduledJobs();
-    for (const job of dueJobs) {
-        await blastRepository.updateJobStatus(job.id, 'PENDING');
-    }
-
-    const [recipient] = await blastRepository.findPendingRecipients(1);
-    if (!recipient) return;
-
-    const job = recipient.blastJob as any;
-    const device = job?.device;
-
-    if (!device) {
-        await blastRepository.updateRecipientStatus(recipient.id, 'FAILED', 'Device not found');
-        return;
-    }
-
-    // Mark job as processing on first recipient
-    if (job.status === 'PENDING') {
-        await blastRepository.updateJobStatus(job.blastJobId || job.id, 'PROCESSING', {
-            startedAt: new Date(),
-        });
-    }
-
-    try {
-        await sessionManager.sendTextMessage(device.id, recipient.phone, recipient.message);
-        await blastRepository.updateRecipientStatus(recipient.id, 'SENT', undefined, new Date());
-
-        // Broadcast to frontend
-        wsServer.sendToDevice(device.id, 'blast_progress', {
-            blastJobId: recipient.blastJobId,
-            phone: recipient.phone,
-            status: 'SENT',
-        });
-    } catch (err: any) {
-        await blastRepository.updateRecipientStatus(recipient.id, 'FAILED', err.message);
-        wsServer.sendToDevice(device.id, 'blast_progress', {
-            blastJobId: recipient.blastJobId,
-            phone: recipient.phone,
-            status: 'FAILED',
-            error: err.message,
-        });
-    }
-
-    // Check if all recipients for this job are done
-    const counts = await blastRepository.countRecipients(recipient.blastJobId);
-    if (counts.pending === 0) {
-        await blastRepository.updateJobStatus(recipient.blastJobId, 'COMPLETED', {
-            completedAt: new Date(),
-        });
-        wsServer.broadcast('blast_completed', { blastJobId: recipient.blastJobId, stats: counts });
-    }
-}
-
-async function startWorker(): Promise<void> {
-    console.log(`[BlastWorker] Started. Poll interval: ${POLL_INTERVAL}ms, Message delay: ${MESSAGE_DELAY}ms`);
-
-    // Restore active Baileys sessions
-    await sessionManager.restoreAllSessions();
-
-    while (true) {
-        try {
-            await processNextRecipient();
-        } catch (err) {
-            console.error('[BlastWorker] Error processing recipient:', err);
+        const recipient = await blastRepository.findRecipientById(recipientId);
+        if (!recipient) {
+            console.error(`[Worker] Recipient ${recipientId} not found in DB`);
+            return;
         }
-        await sleep(MESSAGE_DELAY);
+
+        const blastJob = recipient.blastJob as any;
+        const device = blastJob?.device;
+
+        if (!device) {
+            await blastRepository.updateRecipientStatus(recipient.id, 'FAILED', 'Device not found');
+            return;
+        }
+
+        // Mark job as processing on first recipient if it's still PENDING
+        if (blastJob.status === 'PENDING' || blastJob.status === 'SCHEDULED') {
+            await blastRepository.updateJobStatus(blastJob.id, 'PROCESSING', {
+                startedAt: new Date(),
+            });
+        }
+
+        try {
+            await sessionManager.sendTextMessage(device.id, recipient.phone, recipient.message);
+            await blastRepository.updateRecipientStatus(recipient.id, 'SENT', undefined, new Date());
+
+            // Broadcast to frontend
+            wsServer.sendToDevice(device.id, 'blast_progress', {
+                blastJobId: recipient.blastJobId,
+                phone: recipient.phone,
+                status: 'SENT',
+            });
+        } catch (err: any) {
+            console.error(`[Worker] Failed to send to ${recipient.phone}:`, err.message);
+            await blastRepository.updateRecipientStatus(recipient.id, 'FAILED', err.message);
+
+            wsServer.sendToDevice(device.id, 'blast_progress', {
+                blastJobId: recipient.blastJobId,
+                phone: recipient.phone,
+                status: 'FAILED',
+                error: err.message,
+            });
+        }
+
+        // Check completion
+        const counts = await blastRepository.countRecipients(recipient.blastJobId);
+        if (counts.pending === 0) {
+            await blastRepository.updateJobStatus(recipient.blastJobId, 'COMPLETED', {
+                completedAt: new Date(),
+            });
+            wsServer.broadcast('blast_completed', {
+                blastJobId: recipient.blastJobId,
+                stats: counts
+            });
+            console.log(`[Worker] Blast job ${recipient.blastJobId} COMPLETED`);
+        }
+    },
+    {
+        connection: redisConnection as ConnectionOptions,
+        concurrency: 5, // Process up to 5 messages in parallel
+    }
+);
+
+worker.on('failed', (job, err) => {
+    console.error(`[Worker] Job ${job?.id} failed:`, err.message);
+});
+
+console.log('[Worker] BullMQ Blast Worker started.');
+
+async function backfillScheduledJobs() {
+    console.log('[Worker] Checking for unsent recipients to backfill...');
+    const pendingRecipients = await prisma.blastRecipient.findMany({
+        where: { status: 'PENDING' },
+        include: { blastJob: true }
+    });
+
+    for (const recipient of pendingRecipients) {
+        const job = recipient.blastJob;
+        const delay = job.scheduledAt ? Math.max(0, new Date(job.scheduledAt).getTime() - Date.now()) : 0;
+        await addRecipientJob(recipient.id, delay);
+    }
+
+    if (pendingRecipients.length > 0) {
+        console.log(`[Worker] Backfilled ${pendingRecipients.length} recipients into Redis.`);
     }
 }
 
-startWorker().catch(console.error);
+// Restore sessions to ensure we can send messages
+Promise.all([
+    sessionManager.restoreAllSessions(),
+    backfillScheduledJobs()
+]).then(() => {
+    console.log('[Worker] Initialization complete. Listening for jobs...');
+});
+

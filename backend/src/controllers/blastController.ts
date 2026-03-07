@@ -3,6 +3,7 @@ import { blastRepository } from '../repositories/blastRepository';
 import { contactRepository } from '../repositories/contactRepository';
 import { resolveTemplate } from '../utils/csvParser';
 import { prisma } from '../config/prisma';
+import { addRecipientJob } from '../queues/blastQueue';
 
 export const blastController = {
     async create(request: FastifyRequest, reply: FastifyReply) {
@@ -58,10 +59,27 @@ export const blastController = {
             });
         }
 
+        const createdRecipients = await prisma.blastRecipient.findMany({
+            where: { blastJobId: job.id }
+        });
+
+        // Add to Redis Queue with staggered delay
+        const baseDelay = scheduledAt ? Math.max(0, new Date(scheduledAt).getTime() - Date.now()) : 0;
+        const staggeredInterval = parseInt(process.env.MESSAGE_DELAY_MS || '3000', 10);
+
+        for (let i = 0; i < createdRecipients.length; i++) {
+            await addRecipientJob(
+                createdRecipients[i].id,
+                baseDelay + (i * staggeredInterval)
+            );
+        }
+
         return reply.status(201).send({
             success: true,
             data: { jobId: job.id, recipientCount: recipients.length },
-            message: 'Blast job created. Worker will start processing.',
+            message: scheduledAt
+                ? `Blast job scheduled for ${scheduledAt}`
+                : 'Blast job created and queued for processing.',
         });
     },
 
