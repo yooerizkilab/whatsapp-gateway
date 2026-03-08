@@ -11,9 +11,17 @@ Seluruh API (kecuali rute publik) diamankan menggunakan salah satu metode beriku
 2.  **API Key** (Direkomendasikan untuk Integrasi Script/Server):
     Header: `x-api-key: <api_key_anda>`
 
-> API Key dapat digenerate secara mandiri melalui menu **Settings** di Dashboard.
->
-> 📖 **[Lihat Developer Guide](./DEVELOPER_GUIDE.md)** untuk panduan integrasi mendalam dan contoh kode.
+---
+
+## ⏳ Rate Limiter (API Protection)
+
+Untuk menjaga stabilitas server, kami menerapkan kebijakan Rate Limit:
+
+- **Global**: Maksimal **100 request per menit** per User/IP.
+- Melebihi batas akan menerima error `429 Too Many Requests`.
+- Rute WebSocket (`/ws`) dan Health Check dikecualikan dari limit ini.
+
+---
 
 ### 1. Authentication (`/api/auth`)
 
@@ -21,7 +29,18 @@ Seluruh API (kecuali rute publik) diamankan menggunakan salah satu metode beriku
 - **`POST /login`**: Mendapatkan token JWT.
   - Payload: `{ "email": "...", "password": "..." }`
 - **`GET /me`**: Mendapatkan profil pengguna yang sedang login.
-- **`PUT /profile`**: Memperbarui Nama, Email, dan No Telepon.
+- **`PUT /profile`**: Memperbarui profil (Nama, Email, dan Jam Kerja).
+  - **Payload**:
+    ```json
+    {
+      "name": "User Name",
+      "email": "user@example.com",
+      "workingHoursEnabled": true,
+      "workingHoursStart": "09:00",
+      "workingHoursEnd": "17:00",
+      "timezone": "Asia/Jakarta"
+    }
+    ```
 - **`PUT /profile/password`**: Mengganti password user.
 
 ---
@@ -37,9 +56,18 @@ Seluruh API (kecuali rute publik) diamankan menggunakan salah satu metode beriku
 
 ### 3. Messaging - Pesan (`/api/messages`)
 
-- **`POST /send`**: Mengirim pesan real-time.
-  - Payload: `{ "deviceId": "...", "to": "6281...", "type": "TEXT", "content": "Halo!" }`
-  - Mendukung `"type": "IMAGE" | "DOCUMENT" | "VIDEO" | "AUDIO"` dengan parameter `mediaUrl`.
+- **`POST /send`**: Mengirim pesan tunggal.
+  - **Payload**:
+    ```json
+    {
+      "deviceId": "...",
+      "to": "6281...",
+      "type": "TEXT",
+      "content": "Halo!",
+      "scheduledAt": "2026-03-08T10:00:00Z" // ISO 8601 (Opsional)
+    }
+    ```
+  - Mendukung `"type": "IMAGE" | "DOCUMENT"` dengan parameter `mediaUrl`.
 - **`GET /logs`**: Riwayat pengiriman pesan.
 - **`POST /blast`**: Membuat kampanye broadcast masal.
 - **`GET /blast`**: Daftar semua kampanye blast.
