@@ -161,3 +161,10 @@ export const adminAPI = {
     updateUserSubscription: (id: string, data: any) =>
         api.put(`/admin/users/${id}/subscription`, data),
 };
+
+// ── API Keys ──────────────────────────────────────────────
+export const apiKeyAPI = {
+    list: () => api.get('/api-keys'),
+    create: (name: string) => api.post('/api-keys', { name }),
+    delete: (id: string) => api.delete(`/api-keys/${id}`),
+};

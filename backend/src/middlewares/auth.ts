@@ -1,6 +1,27 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
+import { prisma } from '../config/prisma';
 
 export async function authenticate(request: FastifyRequest, reply: FastifyReply) {
+    const apiKeyHeader = request.headers['x-api-key'] as string;
+
+    if (apiKeyHeader) {
+        const apiKey = await prisma.apiKey.findUnique({
+            where: { key: apiKeyHeader },
+            include: { user: true }
+        });
+
+        if (apiKey) {
+            // Populate request.user similar to JWT
+            request.user = {
+                id: apiKey.user.id,
+                email: apiKey.user.email,
+                role: apiKey.user.role,
+                name: apiKey.user.name
+            };
+            return;
+        }
+    }
+
     try {
         await request.jwtVerify();
     } catch (err) {

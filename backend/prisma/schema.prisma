@@ -33,11 +33,30 @@ model User {
   blastJobs           BlastJob[]
   autoResponders      AutoResponder[]
   webhooks            Webhook[]
+  apiKeys             ApiKey[]
   subscriptionPlan    SubscriptionPlan?    @relation(fields: [subscriptionPlanId], references: [id])
   paymentTransactions PaymentTransaction[]
 
   @@index([email])
   @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────
+// API KEYS
+// ─────────────────────────────────────────────────────────
+model ApiKey {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  key       String   @unique
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([key])
+  @@map("api_keys")
 }
 
 enum SubscriptionStatus {

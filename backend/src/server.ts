@@ -17,6 +17,7 @@ import webhookRoutes from './routes/webhook.routes';
 import { billingRoutes } from './routes/billing.routes';
 import { chatRoutes } from './routes/chat.routes';
 import { adminRoutes } from './routes/admin.routes';
+import { apiKeyRoutes } from './routes/apiKey.routes';
 import { wsServer } from './websocket/wsServer';
 import { sessionManager } from './baileys/sessionManager';
 import { prisma } from './config/prisma';
@@ -70,6 +71,7 @@ async function buildServer() {
     fastify.register(billingRoutes, { prefix: '/billing' });
     fastify.register(chatRoutes, { prefix: '/chats' });
     fastify.register(adminRoutes, { prefix: '/admin' });
+    fastify.register(apiKeyRoutes, { prefix: '/api-keys' });
 
     // ── Error handler ─────────────────────────────────────────
     fastify.setErrorHandler(errorHandler);

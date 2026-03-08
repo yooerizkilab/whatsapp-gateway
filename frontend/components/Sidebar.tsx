@@ -17,6 +17,7 @@ const navItems = [
   { href: '/webhooks', label: 'Webhooks', icon: '🔗' },
   { href: '/billing', label: 'Billing', icon: '💳' },
   { href: '/logs', label: 'Message Logs', icon: '📋' },
+  { href: '/settings', label: 'Settings', icon: '⚙️' },
 ];
 
 export default function Sidebar() {

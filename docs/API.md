@@ -4,9 +4,14 @@ Bagian ini berisi referensi teknis untuk integrasi dengan API WhatsApp Gateway.
 
 ## 🔌 Keamanan & Autentikasi
 
-Seluruh API (kecuali rute publik) diamankan menggunakan **Bearer Token JWT**.
-Header wajib:
-`Authorization: Bearer <token_anda>`
+Seluruh API (kecuali rute publik) diamankan menggunakan salah satu metode berikut:
+
+1.  **Bearer Token JWT** (Direkomendasikan untuk Frontend):
+    Header: `Authorization: Bearer <token_anda>`
+2.  **API Key** (Direkomendasikan untuk Integrasi Script/Server):
+    Header: `x-api-key: <api_key_anda>`
+
+> API Key dapat digenerate secara mandiri melalui menu **Settings** di Dashboard.
 
 ### 1. Authentication (`/api/auth`)
 
