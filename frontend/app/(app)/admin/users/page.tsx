@@ -141,9 +141,9 @@ export default function AdminUsersPage() {
                         
                         <form onSubmit={handleUpdate} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-medium text-gray-400 uppercase mb-1">Subscription Plan</label>
+                                <label className="label">Subscription Plan</label>
                                 <select 
-                                    className="input-field"
+                                    className="input"
                                     value={formData.subscriptionPlanId}
                                     onChange={(e) => setFormData({...formData, subscriptionPlanId: e.target.value})}
                                 >
@@ -154,9 +154,9 @@ export default function AdminUsersPage() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-400 uppercase mb-1">Status</label>
+                                <label className="label">Status</label>
                                 <select 
-                                    className="input-field"
+                                    className="input"
                                     value={formData.subscriptionStatus}
                                     onChange={(e) => setFormData({...formData, subscriptionStatus: e.target.value})}
                                 >
@@ -166,19 +166,19 @@ export default function AdminUsersPage() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-400 uppercase mb-1">Expiry Date</label>
+                                <label className="label">Expiry Date</label>
                                 <input 
                                     type="date"
-                                    className="input-field"
+                                    className="input"
                                     value={formData.subscriptionEndDate}
                                     onChange={(e) => setFormData({...formData, subscriptionEndDate: e.target.value})}
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-400 uppercase mb-1">Usage Counter (Reset)</label>
+                                <label className="label">Usage Counter (Reset)</label>
                                 <input 
                                     type="number"
-                                    className="input-field"
+                                    className="input"
                                     value={formData.messagesSentThisMonth}
                                     onChange={(e) => setFormData({...formData, messagesSentThisMonth: e.target.value})}
                                 />

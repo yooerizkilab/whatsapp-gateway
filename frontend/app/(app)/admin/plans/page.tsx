@@ -109,7 +109,7 @@ export default function AdminPlansPage() {
                         </ul>
                         <div className="flex gap-3">
                             <button onClick={() => handleEdit(plan)} className="flex-1 btn-secondary text-xs py-2">Edit</button>
-                            <button onClick={() => handleDelete(plan.id)} className="btn-outline border-red-900/50 text-red-500 text-xs py-2 px-3">Delete</button>
+                            <button onClick={() => handleDelete(plan.id)} className="btn-danger text-xs py-2 px-3">Delete</button>
                         </div>
                     </div>
                 ))}
@@ -124,39 +124,39 @@ export default function AdminPlansPage() {
                         </h2>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-medium text-gray-400 uppercase mb-1">Plan Name</label>
+                                <label className="label">Plan Name</label>
                                 <input 
                                     type="text" required
-                                    className="input-field"
+                                    className="input"
                                     value={formData.name}
                                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                                     placeholder="e.g. PROFESSIONAL"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-400 uppercase mb-1">Price (IDR)</label>
+                                <label className="label">Price (IDR)</label>
                                 <input 
                                     type="number" required
-                                    className="input-field"
+                                    className="input"
                                     value={formData.price}
                                     onChange={(e) => setFormData({...formData, price: e.target.value})}
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-400 uppercase mb-1">Max Devices</label>
+                                    <label className="label">Max Devices</label>
                                     <input 
                                         type="number" required
-                                        className="input-field"
+                                        className="input"
                                         value={formData.maxDevices}
                                         onChange={(e) => setFormData({...formData, maxDevices: e.target.value})}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-400 uppercase mb-1">Max Messages/Mo</label>
+                                    <label className="label">Max Messages/Mo</label>
                                     <input 
                                         type="number" required
-                                        className="input-field"
+                                        className="input"
                                         value={formData.maxMessagesPerMonth}
                                         onChange={(e) => setFormData({...formData, maxMessagesPerMonth: e.target.value})}
                                     />
