@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `blast_jobs` ADD COLUMN `media_url` VARCHAR(191) NULL,
+    ADD COLUMN `type` ENUM('TEXT', 'IMAGE', 'DOCUMENT') NOT NULL DEFAULT 'TEXT';

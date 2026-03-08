@@ -5,6 +5,7 @@ import { blastAPI, deviceAPI, templateAPI, contactAPI } from '@/services/api';
 import { useDeviceStore } from '@/store/deviceStore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import MediaSelector from '@/components/MediaSelector';
 
 interface BlastJob {
   id: string;
@@ -23,7 +24,9 @@ export default function BlastPage() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     deviceId: '', name: '', message: '', groupId: '', templateId: '', scheduledAt: '',
+    type: 'TEXT', mediaUrl: ''
   });
+  const [showMediaSelector, setShowMediaSelector] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -109,6 +112,33 @@ export default function BlastPage() {
           </div>
 
           <div>
+            <label className="label">Message Type</label>
+            <select className="input" value={form.type}
+              onChange={(e) => setForm({ ...form, type: e.target.value })}>
+              <option value="TEXT">Text</option>
+              <option value="IMAGE">Image</option>
+              <option value="DOCUMENT">Document</option>
+            </select>
+          </div>
+
+          {form.type !== 'TEXT' && (
+            <div>
+              <label className="label">Media URL</label>
+              <div className="flex gap-2">
+                  <input className="input" placeholder="https://..." value={form.mediaUrl}
+                    onChange={(e) => setForm({ ...form, mediaUrl: e.target.value })} />
+                  <button 
+                      type="button"
+                      onClick={() => setShowMediaSelector(true)}
+                      className="btn-secondary !text-xs whitespace-nowrap"
+                  >
+                      📁 Library
+                  </button>
+              </div>
+            </div>
+          )}
+
+          <div>
             <label className="label">Template (optional)</label>
             <select className="input" value={form.templateId}
               onChange={(e) => handleTemplateSelect(e.target.value)}>
@@ -134,6 +164,16 @@ export default function BlastPage() {
             {loading ? 'Creating…' : '📢 Create Blast Campaign'}
           </button>
         </form>
+
+        {showMediaSelector && (
+            <MediaSelector 
+                onSelect={(url) => {
+                    setForm({ ...form, mediaUrl: url });
+                    setShowMediaSelector(false);
+                }}
+                onClose={() => setShowMediaSelector(false)}
+            />
+        )}
 
         {/* Job history */}
         <div className="card">

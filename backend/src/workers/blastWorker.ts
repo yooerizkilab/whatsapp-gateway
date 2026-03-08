@@ -36,7 +36,20 @@ const worker = new Worker(
         }
 
         try {
-            await sessionManager.sendTextMessage(device.id, recipient.phone, recipient.message);
+            if (blastJob.type === 'IMAGE') {
+                await sessionManager.sendImageMessage(device.id, recipient.phone, blastJob.mediaUrl, recipient.message);
+            } else if (blastJob.type === 'DOCUMENT') {
+                // For document, we take filename from URL or use a default
+                const filename = blastJob.mediaUrl.split('/').pop() || 'document.pdf';
+                await sessionManager.sendDocumentMessage(device.id, recipient.phone, blastJob.mediaUrl, filename);
+                // Also send the text message separately if there is content (Baileys document doesn't have caption)
+                if (recipient.message) {
+                    await sessionManager.sendTextMessage(device.id, recipient.phone, recipient.message);
+                }
+            } else {
+                await sessionManager.sendTextMessage(device.id, recipient.phone, recipient.message);
+            }
+
             await blastRepository.updateRecipientStatus(recipient.id, 'SENT', undefined, new Date());
 
             // Broadcast to frontend

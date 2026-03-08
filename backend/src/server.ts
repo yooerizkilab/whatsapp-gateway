@@ -1,11 +1,13 @@
 import 'dotenv/config';
 import Fastify from 'fastify';
+import path from 'path';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
 import { env } from './config/env';
 import fastifyWebsocket from '@fastify/websocket';
 import { errorHandler } from './middlewares/errorHandler';
+import fastifyStatic from '@fastify/static';
 import { authenticate } from './middlewares/auth';
 import { authRoutes } from './routes/auth.routes';
 import { deviceRoutes } from './routes/device.routes';
@@ -20,6 +22,7 @@ import { adminRoutes } from './routes/admin.routes';
 import { apiKeyRoutes } from './routes/apiKey.routes';
 import { analyticsRoutes } from './routes/analytics.routes';
 import { tagRoutes } from './routes/tag.routes';
+import { mediaRoutes } from './routes/media.routes';
 import { wsServer } from './websocket/wsServer';
 import { sessionManager } from './baileys/sessionManager';
 import { prisma } from './config/prisma';
@@ -62,20 +65,27 @@ async function buildServer() {
     // ── Health ────────────────────────────────────────────────
     fastify.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
-    // ── Routes ───────────────────────────────────────────────
+    fastify.register(fastifyStatic, {
+        root: path.join(__dirname, '../uploads'),
+        prefix: '/uploads/',
+    });
+
+    // ── Routes ────────────────────────────────────────────────
+    fastify.get('/ping', async () => ({ pong: true }));
     fastify.register(authRoutes, { prefix: '/auth' });
     fastify.register(deviceRoutes, { prefix: '/devices' });
     fastify.register(messageRoutes, { prefix: '/messages' });
+    fastify.register(chatRoutes, { prefix: '/chats' });
     fastify.register(templateRoutes, { prefix: '/templates' });
     fastify.register(contactRoutes, { prefix: '/contacts' });
     fastify.register(autoResponderRoutes, { prefix: '/auto-responder' });
     fastify.register(webhookRoutes, { prefix: '/webhooks' });
     fastify.register(billingRoutes, { prefix: '/billing' });
-    fastify.register(chatRoutes, { prefix: '/chats' });
     fastify.register(adminRoutes, { prefix: '/admin' });
     fastify.register(apiKeyRoutes, { prefix: '/api-keys' });
     fastify.register(analyticsRoutes, { prefix: '/analytics' });
     fastify.register(tagRoutes, { prefix: '/tags' });
+    fastify.register(mediaRoutes, { prefix: '/media' });
 
     // ── Error handler ─────────────────────────────────────────
     fastify.setErrorHandler(errorHandler);

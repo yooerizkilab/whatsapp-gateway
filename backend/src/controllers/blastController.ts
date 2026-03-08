@@ -15,6 +15,8 @@ export const blastController = {
             message,
             groupId,
             scheduledAt,
+            type,
+            mediaUrl,
         } = request.body as {
             deviceId: string;
             templateId?: string;
@@ -22,6 +24,8 @@ export const blastController = {
             message: string;
             groupId?: string;
             scheduledAt?: string;
+            type?: 'TEXT' | 'IMAGE' | 'DOCUMENT';
+            mediaUrl?: string;
         };
 
         // Create blast job
@@ -31,6 +35,8 @@ export const blastController = {
             templateId,
             name,
             message,
+            type,
+            mediaUrl,
             scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
         });
 

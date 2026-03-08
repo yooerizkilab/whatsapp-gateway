@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import { messageAPI, deviceAPI } from '@/services/api';
 import { useDeviceStore } from '@/store/deviceStore';
 import toast from 'react-hot-toast';
+import MediaSelector from '@/components/MediaSelector';
 
 export default function SendPage() {
   const { devices, setDevices } = useDeviceStore();
   const [form, setForm] = useState({ deviceId: '', to: '', content: '', type: 'TEXT', mediaUrl: '' });
   const [loading, setLoading] = useState(false);
+  const [showMediaSelector, setShowMediaSelector] = useState(false);
 
   useEffect(() => {
     deviceAPI.list().then((r) => setDevices(r.data.data));
@@ -86,13 +88,32 @@ export default function SendPage() {
         {form.type !== 'TEXT' && (
           <div>
             <label className="label">Media URL</label>
-            <input
-              className="input"
-              placeholder="https://..."
-              value={form.mediaUrl}
-              onChange={(e) => setForm({ ...form, mediaUrl: e.target.value })}
-            />
+            <div className="flex gap-2">
+                <input
+                    className="input"
+                    placeholder="https://..."
+                    value={form.mediaUrl}
+                    onChange={(e) => setForm({ ...form, mediaUrl: e.target.value })}
+                />
+                <button 
+                    type="button"
+                    onClick={() => setShowMediaSelector(true)}
+                    className="btn-secondary !text-xs whitespace-nowrap"
+                >
+                    📁 Library
+                </button>
+            </div>
           </div>
+        )}
+
+        {showMediaSelector && (
+            <MediaSelector 
+                onSelect={(url) => {
+                    setForm({ ...form, mediaUrl: url });
+                    setShowMediaSelector(false);
+                }}
+                onClose={() => setShowMediaSelector(false)}
+            />
         )}
 
         <div>

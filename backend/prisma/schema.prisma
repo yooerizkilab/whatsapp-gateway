@@ -36,6 +36,7 @@ model User {
   webhooks            Webhook[]
   apiKeys             ApiKey[]
   tags                Tag[]
+  media               Media[]
   subscriptionPlan    SubscriptionPlan?    @relation(fields: [subscriptionPlanId], references: [id])
   paymentTransactions PaymentTransaction[]
 
@@ -159,6 +160,22 @@ model Tag {
   @@map("tags")
 }
 
+model Media {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String
+  url       String
+  type      String   // MIME type (image/png, video/mp4, etc)
+  size      Int      // Size in bytes
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("media")
+}
+
 // ─────────────────────────────────────────────────────────
 // TEMPLATES
 // ─────────────────────────────────────────────────────────
@@ -251,6 +268,8 @@ model BlastJob {
   templateId  String?     @map("template_id")
   name        String
   message     String      @db.Text
+  type        MessageType @default(TEXT)
+  mediaUrl    String?     @map("media_url")
   status      BlastStatus @default(PENDING)
   scheduledAt DateTime?   @map("scheduled_at")
   startedAt   DateTime?   @map("started_at")

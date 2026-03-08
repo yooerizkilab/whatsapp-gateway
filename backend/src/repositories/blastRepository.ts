@@ -7,9 +7,17 @@ export const blastRepository = {
         templateId?: string;
         name: string;
         message: string;
+        type?: 'TEXT' | 'IMAGE' | 'DOCUMENT';
+        mediaUrl?: string;
         scheduledAt?: Date;
     }) {
-        return prisma.blastJob.create({ data: { ...data, status: data.scheduledAt ? 'SCHEDULED' : 'PENDING' } });
+        return prisma.blastJob.create({
+            data: {
+                ...data,
+                type: (data.type as any) || 'TEXT',
+                status: data.scheduledAt ? 'SCHEDULED' : 'PENDING'
+            }
+        });
     },
 
     async createRecipients(

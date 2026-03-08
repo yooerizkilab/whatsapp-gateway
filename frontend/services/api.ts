@@ -188,3 +188,16 @@ export const analyticsAPI = {
     getChartData: () => api.get('/analytics/chart'),
     getBlastStats: () => api.get('/analytics/blasts'),
 };
+
+// ── Media Library ─────────────────────────────────────────
+export const mediaAPI = {
+    list: () => api.get('/media'),
+    upload: (file: File) => {
+        const form = new FormData();
+        form.append('file', file);
+        return api.post('/media/upload', form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    },
+    delete: (id: string) => api.delete(`/media/${id}`),
+};
