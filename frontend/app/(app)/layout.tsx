@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import '@/i18n';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user, initFromStorage } = useAuthStore();

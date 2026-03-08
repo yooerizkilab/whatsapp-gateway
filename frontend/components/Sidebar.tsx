@@ -4,27 +4,34 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
-
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: '📊' },
-  { href: '/devices', label: 'Devices', icon: '📱' },
-  { href: '/contacts', label: 'Contacts', icon: '👥' },
-  { href: '/templates', label: 'Templates', icon: '📝' },
-  { href: '/send', label: 'Send Message', icon: '💬' },
-  { href: '/blast', label: 'Blast', icon: '📢' },
-  { href: '/auto-responder', label: 'Auto-Responder', icon: '🤖' },
-  { href: '/chat', label: 'Live Chat', icon: '💬' },
-  { href: '/team', label: 'Team', icon: '👥' },
-  { href: '/webhooks', label: 'Webhooks', icon: '🔗' },
-  { href: '/billing', label: 'Billing', icon: '💳' },
-  { href: '/logs', label: 'Message Logs', icon: '📋' },
-  { href: '/settings', label: 'Settings', icon: '⚙️' },
-];
+import { useTranslation } from 'react-i18next';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
   const router = useRouter();
+  const { t, i18n } = useTranslation('common');
+
+  const navItems = [
+    { href: '/dashboard', label: t('dashboard'), icon: '📊' },
+    { href: '/devices', label: t('devices'), icon: '📱' },
+    { href: '/contacts', label: t('contacts'), icon: '👥' },
+    { href: '/templates', label: t('templates'), icon: '📝' },
+    { href: '/send', label: t('send_message'), icon: '💬' },
+    { href: '/blast', label: t('blast'), icon: '📢' },
+    { href: '/auto-responder', label: t('autoResponder'), icon: '🤖' },
+    { href: '/chat', label: t('chat'), icon: '💬' },
+    { href: '/team', label: t('team'), icon: '👥' },
+    { href: '/webhooks', label: t('webhooks'), icon: '🔗' },
+    { href: '/billing', label: t('billing'), icon: '💳' },
+    { href: '/logs', label: t('logs'), icon: '📋' },
+    { href: '/settings', label: t('settings'), icon: '⚙️' },
+  ];
+
+  const toggleLanguage = () => {
+    const newLang = i18n.language === 'id' ? 'en' : 'id';
+    i18n.changeLanguage(newLang);
+  };
 
   const handleLogout = () => {
     logout();
@@ -120,9 +127,17 @@ export default function Sidebar() {
         </div>
         <button
           onClick={handleLogout}
-          className="w-full btn-secondary text-sm justify-center"
+          className="w-full btn-secondary text-sm justify-center mb-2"
         >
-          Logout
+          {t('logout')}
+        </button>
+
+        <button
+          onClick={toggleLanguage}
+          className="w-full text-[10px] text-gray-500 hover:text-white flex items-center justify-center gap-2 transition-colors py-1"
+        >
+          <span>🌐</span>
+          {i18n.language === 'id' ? 'Ganti ke English' : 'Switch to Indonesian'}
         </button>
       </div>
     </aside>
