@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyPluginOptions, FastifyRequest, FastifyReply } from 'fastify';
-import { adminController } from '../controllers/adminController';
+import { planController } from '../controllers/admin/planController';
+import { userManagementController } from '../controllers/admin/userManagementController';
 import { isAdmin } from '../middlewares/auth';
 
 export async function adminRoutes(fastify: FastifyInstance, options: FastifyPluginOptions) {
@@ -14,12 +15,12 @@ export async function adminRoutes(fastify: FastifyInstance, options: FastifyPlug
     });
 
     // Subscriptions Plans
-    fastify.get('/plans', adminController.getPlans);
-    fastify.post('/plans', adminController.createPlan);
-    fastify.put('/plans/:id', adminController.updatePlan);
-    fastify.delete('/plans/:id', adminController.deletePlan);
+    fastify.get('/plans', planController.getPlans);
+    fastify.post('/plans', planController.createPlan);
+    fastify.put('/plans/:id', planController.updatePlan);
+    fastify.delete('/plans/:id', planController.deletePlan);
 
     // User Management
-    fastify.get('/users', adminController.listUsers);
-    fastify.put('/users/:id/subscription', adminController.updateUserSubscription);
+    fastify.get('/users', userManagementController.listUsers);
+    fastify.put('/users/:id/subscription', userManagementController.updateUserSubscription);
 }
