@@ -4,6 +4,7 @@ import { sessionManager } from '../baileys/sessionManager';
 import { prisma } from '../config/prisma';
 import { addMessageJob } from '../queues/messageQueue';
 import { calculateDelay } from '../utils/workingHours';
+import { isValidPhone, normalizePhone } from '../utils/phone';
 
 export const messageController = {
     async send(request: FastifyRequest, reply: FastifyReply) {
@@ -25,9 +26,15 @@ export const messageController = {
 
         if (!owner) return reply.status(404).send({ success: false, message: 'Owner not found' });
 
+        if (!isValidPhone(to)) {
+            return reply.status(400).send({ success: false, message: 'Invalid phone number format' });
+        }
+
+        const normalizedTo = normalizePhone(to);
+
         const message = await messageRepository.create({
             deviceId,
-            to,
+            to: normalizedTo,
             type,
             content,
             mediaUrl,
@@ -46,11 +53,11 @@ export const messageController = {
 
             // Send immediately
             if (type === 'TEXT') {
-                await sessionManager.sendTextMessage(deviceId, to, content);
+                await sessionManager.sendTextMessage(deviceId, normalizedTo, content);
             } else if (type === 'IMAGE' && mediaUrl) {
-                await sessionManager.sendImageMessage(deviceId, to, mediaUrl, content);
+                await sessionManager.sendImageMessage(deviceId, normalizedTo, mediaUrl, content);
             } else if (type === 'DOCUMENT' && mediaUrl) {
-                await sessionManager.sendDocumentMessage(deviceId, to, mediaUrl, content);
+                await sessionManager.sendDocumentMessage(deviceId, normalizedTo, mediaUrl, content);
             }
 
             await messageRepository.updateStatus(message.id, 'SENT', new Date());

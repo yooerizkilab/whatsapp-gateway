@@ -71,8 +71,8 @@ async function buildServer() {
     await fastify.register(fastifyWebsocket);
 
     fastify.register(async (fastify) => {
-        fastify.get('/ws', { websocket: true }, (connection: any) => {
-            wsServer.handleConnection(connection);
+        fastify.get('/ws', { websocket: true }, (connection: any, req: any) => {
+            wsServer.handleConnection(connection.socket);
         });
     });
 

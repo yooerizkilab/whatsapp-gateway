@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { contactRepository } from '../repositories/contactRepository';
 import { parseCsvContacts } from '../utils/csvParser';
 import { MultipartFile } from '@fastify/multipart';
+import { isValidPhone, normalizePhone } from '../utils/phone';
 
 export const contactController = {
     async list(request: FastifyRequest, reply: FastifyReply) {
@@ -20,13 +21,34 @@ export const contactController = {
             groupId?: string;
             tagIds?: string[];
         };
-        const contact = await contactRepository.create({ userId: ownerId, name, phone, email, groupId, tagIds });
+
+        if (!isValidPhone(phone)) {
+            return reply.status(400).send({ success: false, message: 'Invalid phone number format' });
+        }
+
+        const normalizedPhone = normalizePhone(phone);
+        const contact = await contactRepository.create({
+            userId: ownerId,
+            name,
+            phone: normalizedPhone,
+            email,
+            groupId,
+            tagIds
+        });
         return reply.status(201).send({ success: true, data: contact });
     },
 
     async update(request: FastifyRequest, reply: FastifyReply) {
         const { id } = request.params as { id: string };
         const data = request.body as Partial<{ name: string; phone: string; email: string; groupId: string; tagIds: string[] }>;
+
+        if (data.phone) {
+            if (!isValidPhone(data.phone)) {
+                return reply.status(400).send({ success: false, message: 'Invalid phone number format' });
+            }
+            data.phone = normalizePhone(data.phone);
+        }
+
         const contact = await contactRepository.update(id, data);
         return reply.send({ success: true, data: contact });
     },
@@ -51,9 +73,21 @@ export const contactController = {
             return reply.status(400).send({ success: false, message: 'No valid contacts found in CSV' });
         }
 
-        const result = await contactRepository.createMany(
-            parsed.map((c) => ({ ...c, userId: ownerId, groupId }))
-        );
+        // Normalize and filter valid ones
+        const validContacts = parsed
+            .filter(c => isValidPhone(c.phone))
+            .map(c => ({
+                ...c,
+                phone: normalizePhone(c.phone),
+                userId: ownerId,
+                groupId
+            }));
+
+        if (validContacts.length === 0) {
+            return reply.status(400).send({ success: false, message: 'No valid international phone numbers found in CSV' });
+        }
+
+        const result = await contactRepository.createMany(validContacts);
 
         return reply.send({
             success: true,

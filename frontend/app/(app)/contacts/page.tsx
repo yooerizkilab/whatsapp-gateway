@@ -5,6 +5,7 @@ import { contactAPI, tagAPI } from '@/services/api';
 import toast from 'react-hot-toast';
 import { useDropzone } from 'react-dropzone';
 import TagManager from '@/components/TagManager';
+import { isValidPhoneNumber, formatPhoneE164 } from '@/utils/phone';
 
 interface Tag { id: string; name: string; color: string }
 interface Contact { id: string; name: string; phone: string; email?: string; group?: { name: string }; tags: Tag[] }
@@ -40,8 +41,11 @@ export default function ContactsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isValidPhoneNumber(form.phone)) {
+        return toast.error('Format nomor telepon tidak valid.');
+    }
     try {
-      await contactAPI.create(form);
+      await contactAPI.create({ ...form, phone: formatPhoneE164(form.phone) });
       toast.success('Contact added');
       setForm({ name: '', phone: '', email: '', groupId: '', tagIds: [] });
       load();

@@ -5,6 +5,7 @@ import { messageAPI, deviceAPI } from '@/services/api';
 import { useDeviceStore } from '@/store/deviceStore';
 import toast from 'react-hot-toast';
 import MediaSelector from '@/components/MediaSelector';
+import { isValidPhoneNumber, formatPhoneE164 } from '@/utils/phone';
 
 export default function SendPage() {
   const { devices, setDevices } = useDeviceStore();
@@ -20,8 +21,13 @@ export default function SendPage() {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    if (!isValidPhoneNumber(form.to)) {
+        setLoading(false);
+        return toast.error('Format nomor telepon tidak valid. Gunakan kode negara (misal: 62812xxx)');
+    }
+
     try {
-      const payload = { ...form };
+      const payload = { ...form, to: formatPhoneE164(form.to) };
       if (!useScheduling) {
           delete (payload as any).scheduledAt;
       }
