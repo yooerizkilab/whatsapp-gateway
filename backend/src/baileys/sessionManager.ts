@@ -275,7 +275,11 @@ class SessionManager {
     async handleAutoRespond(deviceId: string, from: string, text: string): Promise<void> {
         try {
             const autoResponder = await autoResponderRepository.findActiveByDeviceId(deviceId);
-            if (!autoResponder) return;
+            if (!autoResponder) {
+                // Silently skip if no responder configured
+                return;
+            }
+            console.log(`[AutoResponder] Found active responder: ${autoResponder.name} for device ${deviceId}`);
 
             // ── Quota Check ─────────────────────────────────────
             const user: any = autoResponder.user;
@@ -335,6 +339,7 @@ class SessionManager {
 
             // ── 2. AI fallback ─────────────────────────────────────
             if (!replied && autoResponder.aiProvider) {
+                console.log(`[AutoResponder] No keyword matched. Falling back to AI (${autoResponder.aiProvider})...`);
                 const aiReply = await callAI(
                     autoResponder.aiProvider,
                     autoResponder.aiModel || '',

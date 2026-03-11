@@ -11,6 +11,7 @@ export async function callAI(
     systemPrompt: string,
     userMessage: string
 ): Promise<string> {
+    console.log(`[AI] Calling provider: ${provider}, model: ${model}`);
     switch (provider.toLowerCase()) {
         case 'openai':
             return callOpenAI(model, systemPrompt, userMessage);
@@ -27,17 +28,24 @@ async function callOpenAI(model: string, systemPrompt: string, userMessage: stri
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) throw new Error('OPENAI_API_KEY is not set in environment variables');
 
-    const client = new OpenAI({ apiKey });
-    const response = await client.chat.completions.create({
-        model: model || 'gpt-4o-mini',
-        messages: [
-            { role: 'system', content: systemPrompt || 'You are a helpful WhatsApp assistant. Reply concisely.' },
-            { role: 'user', content: userMessage },
-        ],
-        max_tokens: 500,
-    });
+    try {
+        const client = new OpenAI({ apiKey });
+        const response = await client.chat.completions.create({
+            model: model || 'gpt-4o-mini',
+            messages: [
+                { role: 'system', content: systemPrompt || 'You are a helpful WhatsApp assistant. Reply concisely.' },
+                { role: 'user', content: userMessage },
+            ],
+            max_tokens: 500,
+        });
 
-    return response.choices[0]?.message?.content?.trim() || 'Sorry, I could not generate a response.';
+        const reply = response.choices[0]?.message?.content?.trim() || 'Sorry, I could not generate a response.';
+        console.log(`[AI] OpenAI replied successfully.`);
+        return reply;
+    } catch (error: any) {
+        console.error(`[AI] OpenAI Error:`, error.message);
+        throw error;
+    }
 }
 
 async function callAnthropic(model: string, systemPrompt: string, userMessage: string): Promise<string> {
