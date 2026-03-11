@@ -9,6 +9,7 @@ import makeWASocket, {
 import { Boom } from '@hapi/boom';
 import * as fs from 'fs';
 import * as path from 'path';
+import pino from 'pino';
 import { env } from '../config/env';
 import { wsServer } from '../websocket/wsServer';
 import { prisma } from '../config/prisma';
@@ -39,7 +40,7 @@ class SessionManager {
         // Prevent duplicate session creation
         const existingSession = this.sessions.get(deviceId);
         if (existingSession) {
-            console.log(`[SessionManager] Session already exists for device ${deviceId}. Ending old connection.`);
+            logger.info(`[SessionManager] Session already exists for device ${deviceId}. Ending old connection.`);
             existingSession.socket.end(undefined);
             this.sessions.delete(deviceId);
         }
@@ -58,6 +59,7 @@ class SessionManager {
             auth: state,
             printQRInTerminal: false,
             browser: ['WhatsApp Gateway', 'Chrome', '1.0.0'],
+            logger: pino({ level: 'silent' }) as any,
         });
 
         this.sessions.set(deviceId, { socket, deviceId });
@@ -84,7 +86,7 @@ class SessionManager {
                         data: { status: 'QR_REQUIRED' },
                     });
                 } catch (err) {
-                    console.log(`[Baileys] Ignored QR update for missing device: ${deviceId}`);
+                    logger.debug(`[Baileys] Ignored QR update for missing device: ${deviceId}`);
                 }
             }
 
@@ -96,7 +98,7 @@ class SessionManager {
                         data: { status: 'CONNECTED', phoneNumber },
                     });
                 } catch (err) {
-                    console.log(`[Baileys] Ignored connection open for missing device: ${deviceId}`);
+                    logger.debug(`[Baileys] Ignored connection open for missing device: ${deviceId}`);
                 }
                 wsServer.sendToDevice(deviceId, 'device_status', {
                     deviceId,
@@ -109,7 +111,7 @@ class SessionManager {
                 const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
                 const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
-                console.log(`[Baileys] Connection closed for device ${deviceId}. Status: ${statusCode}, Reconnecting: ${shouldReconnect}`);
+                logger.info(`[Baileys] Connection closed for device ${deviceId}. Status: ${statusCode}, Reconnecting: ${shouldReconnect}`);
 
                 try {
                     await prisma.device.update({
