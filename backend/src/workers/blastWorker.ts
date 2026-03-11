@@ -8,95 +8,99 @@ import { blastRepository } from '../repositories/blastRepository';
 import { sessionManager } from '../baileys/sessionManager';
 import { wsServer } from '../websocket/wsServer';
 
-const worker = new Worker(
-    'blast-queue',
-    async (job: Job) => {
-        const { recipientId } = job.data as { recipientId: string };
-        console.log(`[Worker] Processing recipient: ${recipientId}`);
+export async function startBlastWorker() {
+    // console.log('[Worker] Initializing BullMQ Blast Worker...');
 
-        const recipient = await blastRepository.findRecipientById(recipientId);
-        if (!recipient) {
-            console.error(`[Worker] Recipient ${recipientId} not found in DB`);
-            return;
-        }
+    // Backfill scheduled jobs
+    await backfillScheduledJobs();
 
-        const blastJob = recipient.blastJob as any;
-        const device = blastJob?.device;
+    const worker = new Worker(
+        'blast-queue',
+        async (job: Job) => {
+            const { recipientId } = job.data as { recipientId: string };
+            // console.log(`[Worker] Processing recipient: ${recipientId}`);
 
-        if (!device) {
-            await blastRepository.updateRecipientStatus(recipient.id, 'FAILED', 'Device not found');
-            return;
-        }
-
-        // Mark job as processing on first recipient if it's still PENDING
-        if (blastJob.status === 'PENDING' || blastJob.status === 'SCHEDULED') {
-            await blastRepository.updateJobStatus(blastJob.id, 'PROCESSING', {
-                startedAt: new Date(),
-            });
-        }
-
-        try {
-            if (blastJob.type === 'IMAGE') {
-                await sessionManager.sendImageMessage(device.id, recipient.phone, blastJob.mediaUrl, recipient.message);
-            } else if (blastJob.type === 'DOCUMENT') {
-                // For document, we take filename from URL or use a default
-                const filename = blastJob.mediaUrl.split('/').pop() || 'document.pdf';
-                await sessionManager.sendDocumentMessage(device.id, recipient.phone, blastJob.mediaUrl, filename);
-                // Also send the text message separately if there is content (Baileys document doesn't have caption)
-                if (recipient.message) {
-                    await sessionManager.sendTextMessage(device.id, recipient.phone, recipient.message);
-                }
-            } else {
-                await sessionManager.sendTextMessage(device.id, recipient.phone, recipient.message);
+            const recipient = await blastRepository.findRecipientById(recipientId);
+            if (!recipient) {
+                console.error(`[Worker] Recipient ${recipientId} not found in DB`);
+                return;
             }
 
-            await blastRepository.updateRecipientStatus(recipient.id, 'SENT', undefined, new Date());
+            const blastJob = recipient.blastJob as any;
+            const device = blastJob?.device;
 
-            // Broadcast to frontend
-            wsServer.sendToDevice(device.id, 'blast_progress', {
-                blastJobId: recipient.blastJobId,
-                phone: recipient.phone,
-                status: 'SENT',
-            });
-        } catch (err: any) {
-            console.error(`[Worker] Failed to send to ${recipient.phone}:`, err.message);
-            await blastRepository.updateRecipientStatus(recipient.id, 'FAILED', err.message);
+            if (!device) {
+                await blastRepository.updateRecipientStatus(recipient.id, 'FAILED', 'Device not found');
+                return;
+            }
 
-            wsServer.sendToDevice(device.id, 'blast_progress', {
-                blastJobId: recipient.blastJobId,
-                phone: recipient.phone,
-                status: 'FAILED',
-                error: err.message,
-            });
+            // Mark job as processing on first recipient if it's still PENDING
+            if (blastJob.status === 'PENDING' || blastJob.status === 'SCHEDULED') {
+                await blastRepository.updateJobStatus(blastJob.id, 'PROCESSING', {
+                    startedAt: new Date(),
+                });
+            }
+
+            try {
+                if (blastJob.type === 'IMAGE') {
+                    await sessionManager.sendImageMessage(device.id, recipient.phone, blastJob.mediaUrl, recipient.message);
+                } else if (blastJob.type === 'DOCUMENT') {
+                    const filename = blastJob.mediaUrl.split('/').pop() || 'document.pdf';
+                    await sessionManager.sendDocumentMessage(device.id, recipient.phone, blastJob.mediaUrl, filename);
+                    if (recipient.message) {
+                        await sessionManager.sendTextMessage(device.id, recipient.phone, recipient.message);
+                    }
+                } else {
+                    await sessionManager.sendTextMessage(device.id, recipient.phone, recipient.message);
+                }
+
+                await blastRepository.updateRecipientStatus(recipient.id, 'SENT', undefined, new Date());
+
+                wsServer.sendToDevice(device.id, 'blast_progress', {
+                    blastJobId: recipient.blastJobId,
+                    phone: recipient.phone,
+                    status: 'SENT',
+                });
+            } catch (err: any) {
+                console.error(`[Worker] Failed to send to ${recipient.phone}:`, err.message);
+                await blastRepository.updateRecipientStatus(recipient.id, 'FAILED', err.message);
+
+                wsServer.sendToDevice(device.id, 'blast_progress', {
+                    blastJobId: recipient.blastJobId,
+                    phone: recipient.phone,
+                    status: 'FAILED',
+                    error: err.message,
+                });
+            }
+
+            // Check completion
+            const counts = await blastRepository.countRecipients(recipient.blastJobId);
+            if (counts.pending === 0) {
+                await blastRepository.updateJobStatus(recipient.blastJobId, 'COMPLETED', {
+                    completedAt: new Date(),
+                });
+                wsServer.broadcast('blast_completed', {
+                    blastJobId: recipient.blastJobId,
+                    stats: counts
+                });
+                console.log(`[Worker] Blast job ${recipient.blastJobId} COMPLETED`);
+            }
+        },
+        {
+            connection: redisConnection as ConnectionOptions,
+            concurrency: 5,
         }
+    );
 
-        // Check completion
-        const counts = await blastRepository.countRecipients(recipient.blastJobId);
-        if (counts.pending === 0) {
-            await blastRepository.updateJobStatus(recipient.blastJobId, 'COMPLETED', {
-                completedAt: new Date(),
-            });
-            wsServer.broadcast('blast_completed', {
-                blastJobId: recipient.blastJobId,
-                stats: counts
-            });
-            console.log(`[Worker] Blast job ${recipient.blastJobId} COMPLETED`);
-        }
-    },
-    {
-        connection: redisConnection as ConnectionOptions,
-        concurrency: 5, // Process up to 5 messages in parallel
-    }
-);
+    worker.on('failed', (job, err) => {
+        console.error(`[Worker] Job ${job?.id} failed:`, err.message);
+    });
 
-worker.on('failed', (job, err) => {
-    console.error(`[Worker] Job ${job?.id} failed:`, err.message);
-});
-
-console.log('[Worker] BullMQ Blast Worker started.');
+    console.log('[Worker] Blast Worker is now listening for jobs.');
+}
 
 async function backfillScheduledJobs() {
-    console.log('[Worker] Checking for unsent recipients to backfill...');
+    // console.log('[Worker] Checking for unsent recipients to backfill...');
     const pendingRecipients = await prisma.blastRecipient.findMany({
         where: { status: 'PENDING' },
         include: { blastJob: true }
@@ -112,12 +116,4 @@ async function backfillScheduledJobs() {
         console.log(`[Worker] Backfilled ${pendingRecipients.length} recipients into Redis.`);
     }
 }
-
-// Restore sessions to ensure we can send messages
-Promise.all([
-    sessionManager.restoreAllSessions(),
-    backfillScheduledJobs()
-]).then(() => {
-    console.log('[Worker] Initialization complete. Listening for jobs...');
-});
 

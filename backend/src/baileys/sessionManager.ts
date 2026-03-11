@@ -35,6 +35,14 @@ class SessionManager {
     }
 
     async createSession(deviceId: string): Promise<void> {
+        // Prevent duplicate session creation
+        const existingSession = this.sessions.get(deviceId);
+        if (existingSession) {
+            console.log(`[SessionManager] Session already exists for device ${deviceId}. Ending old connection.`);
+            existingSession.socket.end(undefined);
+            this.sessions.delete(deviceId);
+        }
+
         const sessionPath = path.join(env.SESSION_DIR, deviceId);
 
         if (!fs.existsSync(sessionPath)) {
@@ -97,8 +105,10 @@ class SessionManager {
             }
 
             if (connection === 'close') {
-                const shouldReconnect =
-                    (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
+                const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
+                const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+
+                console.log(`[Baileys] Connection closed for device ${deviceId}. Status: ${statusCode}, Reconnecting: ${shouldReconnect}`);
 
                 try {
                     await prisma.device.update({
@@ -247,11 +257,18 @@ class SessionManager {
     async destroySession(deviceId: string): Promise<void> {
         const session = this.sessions.get(deviceId);
         if (session) {
-            await session.socket.logout();
+            try {
+                await session.socket.logout();
+            } catch (err) {
+                console.error(`[SessionManager] Error during logout for ${deviceId}:`, err);
+                session.socket.end(undefined);
+            }
             this.sessions.delete(deviceId);
         }
         const sessionPath = path.join(env.SESSION_DIR, deviceId);
-        fs.rmSync(sessionPath, { recursive: true, force: true });
+        if (fs.existsSync(sessionPath)) {
+            fs.rmSync(sessionPath, { recursive: true, force: true });
+        }
     }
 
     async restoreAllSessions(): Promise<void> {
@@ -279,7 +296,7 @@ class SessionManager {
                 // Silently skip if no responder configured
                 return;
             }
-            console.log(`[AutoResponder] Found active responder: ${autoResponder.name} for device ${deviceId}`);
+            // console.log(`[AutoResponder] Found active responder: ${autoResponder.name} for device ${deviceId}`);
 
             // ── Quota Check ─────────────────────────────────────
             const user: any = autoResponder.user;
@@ -290,10 +307,17 @@ class SessionManager {
                     ? user.subscriptionPlan.maxMessagesPerMonth
                     : 100; // Default Free Tier
 
+                // console.log(`[AutoResponder] Quota check for ${user.id}: ${user.messagesSentThisMonth}/${maxMessages}`);
                 if (user.messagesSentThisMonth >= maxMessages) {
                     console.log(`[AutoResponder] Quota exceeded for user ${user.id}. Skipping reply.`);
                     return;
                 }
+            }
+
+            // Skip groups to avoid loops/chaos (unless requested otherwise)
+            if (from.endsWith('@g.us')) {
+                // console.log(`[AutoResponder] Skipping group message from ${from}`);
+                return;
             }
 
             const normalizedText = text.trim().toLowerCase();
@@ -321,6 +345,7 @@ class SessionManager {
                     }
                 });
 
+                // console.log(`[AutoResponder] Rule ${rule.id} (${matchType}) match: ${matched}`);
                 if (matched) {
                     await this.sendTextMessage(deviceId, from, rule.response);
                     console.log(`[AutoResponder] Keyword match (${matchType}): "${text}" → rule ${rule.id}`);
@@ -339,7 +364,7 @@ class SessionManager {
 
             // ── 2. AI fallback ─────────────────────────────────────
             if (!replied && autoResponder.aiProvider) {
-                console.log(`[AutoResponder] No keyword matched. Falling back to AI (${autoResponder.aiProvider})...`);
+                // console.log(`[AutoResponder] No keyword matched. Falling back to AI (${autoResponder.aiProvider})...`);
                 const aiReply = await callAI(
                     autoResponder.aiProvider,
                     autoResponder.aiModel || '',

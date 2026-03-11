@@ -29,6 +29,7 @@ import { agentRoutes } from './routes/agent.routes';
 import { wsServer } from './websocket/wsServer';
 import { sessionManager } from './baileys/sessionManager';
 import { prisma } from './config/prisma';
+import { startBlastWorker } from './workers/blastWorker';
 
 async function buildServer() {
     const fastify = Fastify({
@@ -124,6 +125,10 @@ async function start() {
         // ── Restore active WhatsApp sessions ──────────────────
         await sessionManager.restoreAllSessions();
         fastify.log.info(`WhatsApp sessions restored`);
+
+        // ── Start Blast Worker ────────────────────────────────
+        await startBlastWorker();
+        fastify.log.info(`Blast worker started`);
 
         fastify.log.info(`Server running at http://${env.HOST}:${env.PORT}`);
     } catch (err) {

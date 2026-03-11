@@ -11,7 +11,7 @@ export async function callAI(
     systemPrompt: string,
     userMessage: string
 ): Promise<string> {
-    console.log(`[AI] Calling provider: ${provider}, model: ${model}`);
+    // console.log(`[AI] Calling provider: ${provider}, model: ${model}`);
     switch (provider.toLowerCase()) {
         case 'openai':
             return callOpenAI(model, systemPrompt, userMessage);
@@ -40,7 +40,7 @@ async function callOpenAI(model: string, systemPrompt: string, userMessage: stri
         });
 
         const reply = response.choices[0]?.message?.content?.trim() || 'Sorry, I could not generate a response.';
-        console.log(`[AI] OpenAI replied successfully.`);
+        // console.log(`[AI] OpenAI replied successfully.`);
         return reply;
     } catch (error: any) {
         console.error(`[AI] OpenAI Error:`, error.message);
@@ -52,29 +52,45 @@ async function callAnthropic(model: string, systemPrompt: string, userMessage: s
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set in environment variables');
 
-    const client = new Anthropic({ apiKey });
-    const response = await client.messages.create({
-        model: model || 'claude-3-haiku-20240307',
-        max_tokens: 500,
-        system: systemPrompt || 'You are a helpful WhatsApp assistant. Reply concisely.',
-        messages: [{ role: 'user', content: userMessage }],
-    });
+    try {
+        const client = new Anthropic({ apiKey });
+        const response = await client.messages.create({
+            model: model || 'claude-3-haiku-20240307',
+            max_tokens: 500,
+            system: systemPrompt || 'You are a helpful WhatsApp assistant. Reply concisely.',
+            messages: [{ role: 'user', content: userMessage }],
+        });
 
-    const block = response.content[0];
-    if (block.type === 'text') return block.text.trim();
-    return 'Sorry, I could not generate a response.';
+        const block = response.content[0];
+        if (block.type === 'text') {
+            // console.log(`[AI] Anthropic replied successfully.`);
+            return block.text.trim();
+        }
+        return 'Sorry, I could not generate a response.';
+    } catch (error: any) {
+        console.error(`[AI] Anthropic Error:`, error.message);
+        throw error;
+    }
 }
 
 async function callGemini(model: string, systemPrompt: string, userMessage: string): Promise<string> {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error('GEMINI_API_KEY is not set in environment variables');
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const geminiModel = genAI.getGenerativeModel({
-        model: model || 'gemini-1.5-flash',
-        systemInstruction: systemPrompt || 'You are a helpful WhatsApp assistant. Reply concisely.',
-    });
+    try {
+        // console.log(`[AI] Gemini target model: ${model || 'gemini-flash-latest'}`);
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const geminiModel = genAI.getGenerativeModel({
+            model: model || 'gemini-flash-latest',
+            systemInstruction: systemPrompt || 'You are a helpful WhatsApp assistant. Reply concisely.',
+        });
 
-    const result = await geminiModel.generateContent(userMessage);
-    return result.response.text().trim() || 'Sorry, I could not generate a response.';
+        const result = await geminiModel.generateContent(userMessage);
+        const reply = result.response.text().trim() || 'Sorry, I could not generate a response.';
+        // console.log(`[AI] Gemini replied successfully.`);
+        return reply;
+    } catch (error: any) {
+        console.error(`[AI] Gemini Error:`, error.message);
+        throw error;
+    }
 }
