@@ -197,7 +197,7 @@ class SessionManager {
 
                     // Auto-responder
                     if (text) {
-                        await this.handleAutoRespond(deviceId, from, text);
+                        await this.handleAutoRespond(deviceId, from, text, msg.key);
                     }
                 }
             }
@@ -289,7 +289,7 @@ class SessionManager {
      * 1. Match keyword rules (sorted by order).
      * 2. If no match and AI is configured → call AI and reply.
      */
-    async handleAutoRespond(deviceId: string, from: string, text: string): Promise<void> {
+    async handleAutoRespond(deviceId: string, from: string, text: string, key: proto.IMessageKey): Promise<void> {
         try {
             const autoResponder = await autoResponderRepository.findActiveByDeviceId(deviceId);
             if (!autoResponder) {
@@ -312,6 +312,13 @@ class SessionManager {
                     console.log(`[AutoResponder] Quota exceeded for user ${user.id}. Skipping reply.`);
                     return;
                 }
+            }
+
+            // ── Read Receipt & Typing ─────────────────────────────
+            const session = this.sessions.get(deviceId);
+            if (session) {
+                await session.socket.readMessages([key]);
+                await session.socket.sendPresenceUpdate('composing', from);
             }
 
             // Skip groups to avoid loops/chaos (unless requested otherwise)
@@ -384,6 +391,12 @@ class SessionManager {
             }
         } catch (err: any) {
             console.error(`[AutoResponder] Error handling auto-respond for device ${deviceId}:`, err.message);
+        } finally {
+            // ── Clear Typing Indicator ──────────────────────────
+            const session = this.sessions.get(deviceId);
+            if (session) {
+                await session.socket.sendPresenceUpdate('paused', from);
+            }
         }
     }
 }
