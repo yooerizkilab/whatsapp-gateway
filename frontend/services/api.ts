@@ -136,6 +136,7 @@ export const autoResponderAPI = {
         isActive?: boolean;
         aiProvider?: string | null;
         aiModel?: string | null;
+        apiKey?: string | null;
         systemPrompt?: string | null;
     }) => api.post('/auto-responder', data),
     update: (id: string, data: Partial<{
@@ -143,6 +144,7 @@ export const autoResponderAPI = {
         isActive: boolean;
         aiProvider: string | null;
         aiModel: string | null;
+        apiKey: string | null;
         systemPrompt: string | null;
     }>) => api.put(`/auto-responder/${id}`, data),
     delete: (id: string) => api.delete(`/auto-responder/${id}`),

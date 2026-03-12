@@ -388,7 +388,8 @@ class SessionManager {
                     autoResponder.aiProvider,
                     autoResponder.aiModel || '',
                     autoResponder.systemPrompt || 'You are a helpful WhatsApp assistant. Reply concisely.',
-                    text
+                    text,
+                    autoResponder.apiKey
                 );
                 await this.sendTextMessage(deviceId, from, aiReply);
                 logger.info(`[AutoResponder] AI (${autoResponder.aiProvider}) replied to: "${text}"`);

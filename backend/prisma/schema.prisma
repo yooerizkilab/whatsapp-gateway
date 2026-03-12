@@ -355,6 +355,7 @@ model AutoResponder {
   isActive     Boolean  @default(true) @map("is_active")
   aiProvider   String?  @map("ai_provider") // openai | anthropic | gemini
   aiModel      String?  @map("ai_model")
+  apiKey       String?  @db.Text @map("api_key")
   systemPrompt String?  @db.Text @map("system_prompt")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")

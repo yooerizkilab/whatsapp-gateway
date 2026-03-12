@@ -36,30 +36,32 @@ export async function callAI(
     provider: string,
     model: string,
     systemPrompt: string,
-    userMessage: string
+    userMessage: string,
+    dynamicApiKey?: string | null
 ): Promise<string> {
     try {
         // Try the primary provider with retries for transient errors
         return await withRetry(async () => {
             switch (provider.toLowerCase()) {
                 case 'openai':
-                    return callOpenAI(model, systemPrompt, userMessage);
+                    return callOpenAI(model, systemPrompt, userMessage, dynamicApiKey);
                 case 'anthropic':
-                    return callAnthropic(model, systemPrompt, userMessage);
+                    return callAnthropic(model, systemPrompt, userMessage, dynamicApiKey);
                 case 'gemini':
                 default:
-                    return callGemini(model, systemPrompt, userMessage);
+                    return callGemini(model, systemPrompt, userMessage, dynamicApiKey);
             }
         });
     } catch (error: any) {
         const errorMessage = error.message?.toLowerCase() || '';
         const isQuotaError = errorMessage.includes('429') || errorMessage.includes('quota exceeded') || errorMessage.includes('too many requests');
 
-        // Fallback Logic: If Gemini fails with a Quota error, try OpenAI as a backup
-        if (isQuotaError && provider.toLowerCase() === 'gemini') {
+        // Fallback Logic: If Gemini fails with a Quota error AND we are NOT using a dynamic key, try OpenAI as a backup
+        // If we ARE using a dynamic key, it's better to fail so the user knows THEIR key is out of quota.
+        if (isQuotaError && provider.toLowerCase() === 'gemini' && !dynamicApiKey) {
             const hasOpenAI = !!process.env.OPENAI_API_KEY;
             if (hasOpenAI) {
-                logger.warn(`[AI] Gemini quota exhausted. Falling back to OpenAI...`);
+                logger.warn(`[AI] Global Gemini quota exhausted. Falling back to global OpenAI...`);
                 return callOpenAI('gpt-4o-mini', systemPrompt, userMessage);
             }
         }
@@ -69,11 +71,11 @@ export async function callAI(
     }
 }
 
-async function callOpenAI(model: string, systemPrompt: string, userMessage: string): Promise<string> {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) throw new Error('OPENAI_API_KEY is not set in environment variables');
+async function callOpenAI(model: string, systemPrompt: string, userMessage: string, apiKey?: string | null): Promise<string> {
+    const finalApiKey = apiKey || process.env.OPENAI_API_KEY;
+    if (!finalApiKey) throw new Error('OpenAI API Key is not set');
 
-    const client = new OpenAI({ apiKey });
+    const client = new OpenAI({ apiKey: finalApiKey });
     const response = await client.chat.completions.create({
         model: model || 'gpt-4o-mini',
         messages: [
@@ -86,11 +88,11 @@ async function callOpenAI(model: string, systemPrompt: string, userMessage: stri
     return response.choices[0]?.message?.content?.trim() || 'Sorry, I could not generate a response.';
 }
 
-async function callAnthropic(model: string, systemPrompt: string, userMessage: string): Promise<string> {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set in environment variables');
+async function callAnthropic(model: string, systemPrompt: string, userMessage: string, apiKey?: string | null): Promise<string> {
+    const finalApiKey = apiKey || process.env.ANTHROPIC_API_KEY;
+    if (!finalApiKey) throw new Error('Anthropic API Key is not set');
 
-    const client = new Anthropic({ apiKey });
+    const client = new Anthropic({ apiKey: finalApiKey });
     const response = await client.messages.create({
         model: model || 'claude-3-haiku-20240307',
         max_tokens: 500,
@@ -105,11 +107,11 @@ async function callAnthropic(model: string, systemPrompt: string, userMessage: s
     return 'Sorry, I could not generate a response.';
 }
 
-async function callGemini(model: string, systemPrompt: string, userMessage: string): Promise<string> {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error('GEMINI_API_KEY is not set in environment variables');
+async function callGemini(model: string, systemPrompt: string, userMessage: string, apiKey?: string | null): Promise<string> {
+    const finalApiKey = apiKey || process.env.GEMINI_API_KEY;
+    if (!finalApiKey) throw new Error('Gemini API Key is not set');
 
-    const genAI = new GoogleGenerativeAI(apiKey);
+    const genAI = new GoogleGenerativeAI(finalApiKey);
     const geminiModel = genAI.getGenerativeModel({
         model: model || 'gemini-1.5-flash',
         systemInstruction: systemPrompt || 'You are a helpful WhatsApp assistant. Reply concisely.',

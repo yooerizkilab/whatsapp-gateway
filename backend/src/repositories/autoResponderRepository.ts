@@ -41,6 +41,7 @@ export const autoResponderRepository = {
         isActive?: boolean;
         aiProvider?: string | null;
         aiModel?: string | null;
+        apiKey?: string | null;
         systemPrompt?: string | null;
     }) {
         return prisma.autoResponder.create({ data });
@@ -54,6 +55,7 @@ export const autoResponderRepository = {
             isActive: boolean;
             aiProvider: string | null;
             aiModel: string | null;
+            apiKey: string | null;
             systemPrompt: string | null;
         }>
     ) {

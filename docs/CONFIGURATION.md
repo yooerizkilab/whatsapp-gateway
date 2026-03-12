@@ -27,6 +27,15 @@ MESSAGE_DELAY_MS=3000
 
 # URL Frontend (Untuk keamanan CORS)
 FRONTEND_URL="http://localhost:3000"
+
+# AI API Keys (Default Global)
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GEMINI_API_KEY=AIza...
+
+# NOTE: API Keys di atas adalah nilai default global. 
+# Jika Anda mengisi API Key pada halaman pengaturan Auto-Responder di Dashboard, 
+# maka key khusus per-device tersebut akan digunakan menggantikan key di atas.
 ```
 
 ---

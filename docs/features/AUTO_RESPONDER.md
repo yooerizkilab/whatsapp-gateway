@@ -24,8 +24,16 @@ Fitur ini memiliki 2 lapis (_Layer_) respon:
 
 Model Prisma yang terlibat:
 
-- `AutoResponder`: Mewakili pengaturan master per-Device (Nama, Status Aktif, Provider AI, Prompt).
+- `AutoResponder`: Mewakili pengaturan master per-Device (Nama, Status Aktif, Provider AI, Prompt, API Key).
 - `AutoResponderRule`: Mewakili masing-masing keyword dan balasan terusan milik suatu AutoResponder (Relasi One-To-Many).
+
+## Multi-API Key Support
+
+Sistem mendukung penggunaan API Key yang berbeda untuk setiap device. Hal ini sangat berguna untuk:
+- Menghindari limit kuota harian pada _Free Tier_ provider AI (seperti Google Gemini).
+- Menggunakan akun AI yang berbeda-beda untuk tiap departemen/perangkat.
+
+Jika **API Key** diisi pada halaman pengaturan Auto-Responder device, sistem akan menggunakan key tersebut. Jika dikosongkan, sistem akan kembali (_fallback_) menggunakan API Key yang ada di file `.env` server.
 
 ## Alur Sistem Backend (`sessionManager.ts`)
 

@@ -20,6 +20,7 @@ interface AutoResponder {
   isActive: boolean;
   aiProvider: string | null;
   aiModel: string | null;
+  apiKey: string | null;
   systemPrompt: string | null;
   device: { id: string; name: string; phoneNumber: string | null; status: string };
   rules: Rule[];
@@ -70,7 +71,7 @@ export default function AutoResponderDetailPage() {
   const [savingRule, setSavingRule] = useState(false);
 
   // AI settings state
-  const [aiForm, setAiForm] = useState({ aiProvider: '', aiModel: '', systemPrompt: '' });
+  const [aiForm, setAiForm] = useState({ aiProvider: '', aiModel: '', apiKey: '', systemPrompt: '' });
   const [savingAi, setSavingAi] = useState(false);
 
   const load = useCallback(async () => {
@@ -81,6 +82,7 @@ export default function AutoResponderDetailPage() {
       setAiForm({
         aiProvider: data.aiProvider || '',
         aiModel: data.aiModel || '',
+        apiKey: data.apiKey || '',
         systemPrompt: data.systemPrompt || '',
       });
     } catch {
@@ -153,6 +155,7 @@ export default function AutoResponderDetailPage() {
       await autoResponderAPI.update(id, {
         aiProvider: aiForm.aiProvider || null,
         aiModel: aiForm.aiModel || null,
+        apiKey: aiForm.apiKey || null,
         systemPrompt: aiForm.systemPrompt || null,
       });
       flash('Pengaturan AI disimpan');
@@ -317,13 +320,27 @@ export default function AutoResponderDetailPage() {
           <div>
             <label className="block text-sm text-gray-400 mb-1.5">System Prompt</label>
             <textarea
-              className="input w-full h-32 resize-none"
+              className="input w-full h-24 resize-none"
               placeholder="Kamu adalah asisten toko online yang ramah. Jawab pertanyaan singkat dan sopan dalam Bahasa Indonesia."
               value={aiForm.systemPrompt}
               onChange={(e) => setAiForm({ ...aiForm, systemPrompt: e.target.value })}
             />
-            <p className="text-xs text-gray-600 mt-1">
-              Kosongkan untuk menggunakan prompt default. API key dikonfigurasi di file <code className="bg-gray-800 px-1 rounded">.env</code> backend.
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1.5 flex items-center gap-2">
+              API Key
+              {/* <span className="text-[10px] text-brand-400 bg-brand-900/40 px-1.5 rounded border border-brand-800">Opsional</span> */}
+            </label>
+            <input
+              type="password"
+              className="input w-full"
+              placeholder="Masukkan API Key khusus untuk device ini (opsional)"
+              value={aiForm.apiKey}
+              onChange={(e) => setAiForm({ ...aiForm, apiKey: e.target.value })}
+            />
+            <p className="text-[10px] text-gray-600 mt-1">
+              Jika diisi, model akan menggunakan key ini. Jika kosong, akan menggunakan key default dari file <code>.env</code> server.
             </p>
           </div>
 
