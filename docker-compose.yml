@@ -1,74 +1,59 @@
-version: "3.9"
+version: '3.8'
 
 services:
+  # Database
   db:
     image: mysql:8.0
-    container_name: wa_gateway_db
-    restart: unless-stopped
+    container_name: whatsappin-db
+    restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
       MYSQL_DATABASE: whatsapp_gateway
+      MYSQL_ROOT_PASSWORD: password
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
 
+  # Redis (for Queue)
+  redis:
+    image: redis:alpine
+    container_name: whatsappin-redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  # Backend API
   backend:
-    build:
-      context: ./backend
-      dockerfile: ../docker/Dockerfile.backend
-    container_name: wa_gateway_backend
-    restart: unless-stopped
+    build: ./backend
+    container_name: whatsappin-backend
+    restart: always
+    depends_on:
+      - db
+      - redis
     environment:
-      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-rootpassword}@db:3306/whatsapp_gateway
-      JWT_SECRET: ${JWT_SECRET:-changeme}
+      DATABASE_URL: mysql://root:password@db:3306/whatsapp_gateway
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       PORT: 3001
-      HOST: 0.0.0.0
-      SESSION_DIR: /app/sessions
-      FRONTEND_URL: http://localhost:3000
+      # Add other envs here
     ports:
       - "3001:3001"
     volumes:
-      - sessions:/app/sessions
-    depends_on:
-      db:
-        condition: service_healthy
+      - ./backend/sessions:/app/sessions
 
-  worker:
-    build:
-      context: ./backend
-      dockerfile: ../docker/Dockerfile.backend
-    container_name: wa_gateway_worker
-    restart: unless-stopped
-    command: node dist/workers/blastWorker.js
-    environment:
-      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-rootpassword}@db:3306/whatsapp_gateway
-      SESSION_DIR: /app/sessions
-    volumes:
-      - sessions:/app/sessions
-    depends_on:
-      db:
-        condition: service_healthy
-
+  # Frontend SaaS
   frontend:
-    build:
+    build: 
       context: ./frontend
-      dockerfile: ../docker/Dockerfile.frontend
-    container_name: wa_gateway_frontend
-    restart: unless-stopped
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001
-      NEXT_PUBLIC_WS_URL: ws://localhost:3001
-    ports:
-      - "3000:3000"
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3001/v1
+        NEXT_PUBLIC_WS_URL: ws://localhost:3001
+    container_name: whatsappin-frontend
+    restart: always
     depends_on:
       - backend
+    ports:
+      - "3000:3000"
 
 volumes:
   mysql_data:
-  sessions:

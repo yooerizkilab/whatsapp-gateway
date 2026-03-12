@@ -83,20 +83,12 @@ export default function DocsPage() {
 
           <section id="installation" className="space-y-6">
             <h2 className="text-3xl font-bold">🛠️ Instalasi</h2>
+            {/* ... existing manual steps ... */}
             <div className="space-y-4">
-                <p className="text-gray-400 font-bold text-sm uppercase tracking-wide">1. Clone & Install</p>
+                <p className="text-gray-400 font-bold text-sm uppercase tracking-wide">3. Docker (Recommended for Prod)</p>
                 <div className="bg-black border border-white/10 rounded-xl p-6 font-mono text-sm text-gray-300">
-                    <div>git clone https://github.com/your/repo.git</div>
-                    <div className="text-gray-600"># Masuk ke folder backend & frontend lalu jalankan:</div>
-                    <div>npm install</div>
-                </div>
-            </div>
-            <div className="space-y-4">
-                <p className="text-gray-400 font-bold text-sm uppercase tracking-wide">2. Database Migration</p>
-                <div className="bg-black border border-white/10 rounded-xl p-6 font-mono text-sm text-gray-300">
-                    <div className="text-gray-600"># Di folder backend:</div>
-                    <div>npx prisma migrate dev --name init</div>
-                    <div>npm run prisma:seed</div>
+                    <div className="text-gray-600"># Jalankan seluruh stack dengan satu perintah:</div>
+                    <div>docker-compose up -d --build</div>
                 </div>
             </div>
           </section>
