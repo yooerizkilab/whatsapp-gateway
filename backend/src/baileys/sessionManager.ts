@@ -81,24 +81,25 @@ class SessionManager {
                 // Send QR to frontend via WebSocket
                 wsServer.sendToDevice(deviceId, 'qr_update', { deviceId, qr });
                 try {
-                    await prisma.device.update({
+                    // Use updateMany to avoid "Record not found" error if device was deleted
+                    await prisma.device.updateMany({
                         where: { id: deviceId },
                         data: { status: 'QR_REQUIRED' },
                     });
                 } catch (err) {
-                    logger.debug(`[Baileys] Ignored QR update for missing device: ${deviceId}`);
+                    logger.error(`[Baileys] Error updating QR status for device ${deviceId}:`, err);
                 }
             }
 
             if (connection === 'open') {
                 const phoneNumber = socket.user?.id?.split(':')[0] || null;
                 try {
-                    await prisma.device.update({
+                    await prisma.device.updateMany({
                         where: { id: deviceId },
                         data: { status: 'CONNECTED', phoneNumber },
                     });
                 } catch (err) {
-                    logger.debug(`[Baileys] Ignored connection open for missing device: ${deviceId}`);
+                    logger.error(`[Baileys] Error updating connection status for device ${deviceId}:`, err);
                 }
                 wsServer.sendToDevice(deviceId, 'device_status', {
                     deviceId,
@@ -114,12 +115,12 @@ class SessionManager {
                 logger.info(`[Baileys] Connection closed for device ${deviceId}. Status: ${statusCode}, Reconnecting: ${shouldReconnect}`);
 
                 try {
-                    await prisma.device.update({
+                    await prisma.device.updateMany({
                         where: { id: deviceId },
                         data: { status: 'DISCONNECTED' },
                     });
                 } catch (err) {
-                    logger.info(`[Baileys] Ignored disconnect for missing device: ${deviceId}`);
+                    logger.error(`[Baileys] Error updating disconnect status for device ${deviceId}:`, err);
                 }
 
                 wsServer.sendToDevice(deviceId, 'device_status', {
