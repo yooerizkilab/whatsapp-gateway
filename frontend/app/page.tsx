@@ -16,7 +16,8 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
             <a href="#features" className="hover:text-white transition-colors">Features</a>
             <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-            <a href="#api" className="hover:text-white transition-colors">API Reference</a>
+            <Link href="/docs" className="hover:text-white transition-colors">Documentation</Link>
+            <Link href="/api" className="hover:text-white transition-colors">API Reference</Link>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-sm font-medium hover:text-brand-400 transition-colors">
@@ -263,15 +264,15 @@ export default function LandingPage() {
             <ul className="space-y-4 text-sm text-gray-500">
               <li><Link href="#features" className="hover:text-white transition-colors">AI Auto-Responder</Link></li>
               <li><Link href="#features" className="hover:text-white transition-colors">Message Blast</Link></li>
-              <li><Link href="#features" className="hover:text-white transition-colors">API Reference</Link></li>
+              <li><Link href="/api" className="hover:text-white transition-colors">API Reference</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="font-bold mb-6 uppercase text-xs tracking-widest text-gray-400">Developer</h4>
             <ul className="space-y-4 text-sm text-gray-500">
               <li><Link href="/docs" className="hover:text-white transition-colors">Documentation</Link></li>
-              <li><Link href="/docs/api" className="hover:text-white transition-colors">Webhooks</Link></li>
-              <li><Link href="/docs/roadmap" className="hover:text-white transition-colors">Roadmap</Link></li>
+              <li><Link href="/api" className="hover:text-white transition-colors">API Reference</Link></li>
+              <li><Link href="/docs#webhooks" className="hover:text-white transition-colors">Webhooks</Link></li>
             </ul>
           </div>
           <div>
