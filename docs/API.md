@@ -7,6 +7,8 @@ WhatsApp Gateway menyediakan REST API yang mudah digunakan untuk integrasi siste
 Seluruh request wajib menyertakan token JWT pada header:
 `Authorization: Bearer <YOUR_JWT_TOKEN>`
 
+👉 **[Lihat Panduan Postman (Cara GET API)](POSTMAN_GUIDE.md)**
+
 ---
 
 ## 📱 Devices
