@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+let rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+if (rawApiUrl.endsWith('/v1')) {
+    rawApiUrl = rawApiUrl.slice(0, -3);
+}
+
 const api = axios.create({
-    baseURL: (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001') + '/v1',
+    baseURL: rawApiUrl + '/v1',
     headers: { 'Content-Type': 'application/json' },
 });
 

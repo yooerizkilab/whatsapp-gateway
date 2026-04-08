@@ -37,7 +37,7 @@ import { logger } from './utils/logger';
 
 async function buildServer() {
     const fastify = Fastify({
-        logger: false,
+        logger: true,
     });
 
     // ── Plugins ──────────────────────────────────────────────

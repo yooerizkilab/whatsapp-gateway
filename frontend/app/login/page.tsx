@@ -18,11 +18,11 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await authAPI.login(email, password);
+      const res = await authAPI.login(email.trim(), password);
       setAuth(res.data.data.user, res.data.data.token);
       router.push('/dashboard');
-    } catch {
-      toast.error('Invalid credentials');
+    } catch (err: any) {
+      toast.error('Err: ' + (err.response?.status || err.message) + ' URL: ' + authAPI.login.toString());
     } finally {
       setLoading(false);
     }
